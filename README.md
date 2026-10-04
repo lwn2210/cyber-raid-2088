@@ -1,6 +1,6 @@
 # 🚀 CYBER-RAID 2088
 
-> **Zero-asset, retro arcade space shooter powered 100% by mathematical DSP audio.**  
+> **Retro arcade space shooter featuring the fighter ship `ITestItSoYouDOnt`, powered 100% by mathematical DSP audio.**  
 > Built with HTML5 Canvas & [`micro-sfx`](https://github.com/lwn2210/micro-sfx).
 
 [![Live Game](https://img.shields.io/badge/Play%20Live-Cyber--Raid%202088-38bdf8?style=for-the-badge&logo=googlechrome&logoColor=white)](https://lwn2210.github.io/cyber-raid-2088/)
