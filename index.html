@@ -629,58 +629,124 @@
       ctx.rotate(tilt * 0.28);
 
       // Jet Glow / Shadows
-      ctx.shadowColor = '#00f0ff';
-      ctx.shadowBlur = 10;
+      ctx.shadowColor = "#00f0ff";
+      ctx.shadowBlur = 12;
 
-      // Delta Wings
-      ctx.fillStyle = '#0284c7';
+      // 1. Armored Swept Wings with 16-bit Panel Shading
+      // Outer Wing Shadow / Trim
+      ctx.fillStyle = "#034066";
       ctx.beginPath();
-      ctx.moveTo(0, -28);
-      ctx.lineTo(-26, 16);
+      ctx.moveTo(0, -32);
+      ctx.lineTo(-30, 18);
+      ctx.lineTo(-12, 12);
+      ctx.lineTo(12, 12);
+      ctx.lineTo(30, 18);
+      ctx.closePath();
+      ctx.fill();
+
+      // Main Cyan Metallic Wing Plates
+      ctx.fillStyle = "#0284c7";
+      ctx.beginPath();
+      ctx.moveTo(0, -30);
+      ctx.lineTo(-26, 15);
       ctx.lineTo(-10, 10);
       ctx.lineTo(10, 10);
-      ctx.lineTo(26, 16);
+      ctx.lineTo(26, 15);
       ctx.closePath();
       ctx.fill();
 
-      // Fuselage & Nosecone
-      ctx.fillStyle = '#00f0ff';
+      // Wing Armor Highlights
+      ctx.fillStyle = "#38bdf8";
       ctx.beginPath();
-      ctx.moveTo(0, -34);
-      ctx.lineTo(-8, 12);
-      ctx.lineTo(0, 6);
-      ctx.lineTo(8, 12);
+      ctx.moveTo(0, -26);
+      ctx.lineTo(-16, 10);
+      ctx.lineTo(-6, 6);
+      ctx.lineTo(6, 6);
+      ctx.lineTo(16, 10);
       ctx.closePath();
       ctx.fill();
 
-      // Cockpit Canopy
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = '#fff';
+      // Wingtip Aerodynamic Stabilizer Fins
+      ctx.fillStyle = "#00f0ff";
+      ctx.fillRect(-29, 2, 4, 15);
+      ctx.fillRect(25, 2, 4, 15);
+
+      // 2. Dual Vulcan / Plasma Gun Pods (ITestItSoYouDOnt Arsenal)
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(-22, -4, 5, 20);
+      ctx.fillRect(17, -4, 5, 20);
+      ctx.fillStyle = "#ff0055"; // Laser barrel tips
+      ctx.fillRect(-21, -8, 3, 5);
+      ctx.fillRect(18, -8, 3, 5);
+
+      // 3. Central Jet Fuselage & Forward Nosecone
+      ctx.fillStyle = "#0f172a";
+      ctx.beginPath();
+      ctx.moveTo(0, -38);
+      ctx.lineTo(-9, 14);
+      ctx.lineTo(0, 8);
+      ctx.lineTo(9, 14);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#00f0ff";
+      ctx.beginPath();
+      ctx.moveTo(0, -36);
+      ctx.lineTo(-6, 10);
+      ctx.lineTo(0, 6);
+      ctx.lineTo(6, 10);
+      ctx.closePath();
+      ctx.fill();
+
+      // 4. Armored Tinted Cockpit with High-Tech Glass Reflection
+      ctx.fillStyle = "#facc15";
+      ctx.shadowColor = "#facc15";
       ctx.shadowBlur = 8;
       ctx.beginPath();
-      ctx.ellipse(0, -8, 3.5, 9, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, -10, 4, 11, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Wing Cannons
-      ctx.fillStyle = '#ff0055';
-      ctx.fillRect(-24, 4, 3, 10);
-      ctx.fillRect(21, 4, 3, 10);
-
-      // Dual Retro Thrusters
-      ctx.shadowBlur = 0;
-      const flame = 10 + Math.random() * 12;
-      ctx.fillStyle = '#ffe600';
+      // Glass specular gleam
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowBlur = 4;
       ctx.beginPath();
-      ctx.moveTo(-7, 10);
-      ctx.lineTo(-3, 10);
-      ctx.lineTo(-5, 10 + flame);
+      ctx.ellipse(-1.5, -12, 1.5, 5, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 5. Dual Afterburner Plasma Thrusters (Animated Cyan + Amber Flame)
+      ctx.shadowBlur = 0;
+      const f1 = 12 + Math.random() * 14;
+      const f2 = 12 + Math.random() * 14;
+
+      // Outer Orange Plume
+      ctx.fillStyle = "#ff5500";
+      ctx.beginPath();
+      ctx.moveTo(-8, 12);
+      ctx.lineTo(-2, 12);
+      ctx.lineTo(-5, 12 + f1);
       ctx.closePath();
       ctx.fill();
 
       ctx.beginPath();
-      ctx.moveTo(3, 10);
-      ctx.lineTo(7, 10);
-      ctx.lineTo(5, 10 + flame);
+      ctx.moveTo(2, 12);
+      ctx.lineTo(8, 12);
+      ctx.lineTo(5, 12 + f2);
+      ctx.closePath();
+      ctx.fill();
+
+      // Inner Core Superheated Blue Flame
+      ctx.fillStyle = "#00f0ff";
+      ctx.beginPath();
+      ctx.moveTo(-6, 12);
+      ctx.lineTo(-4, 12);
+      ctx.lineTo(-5, 12 + f1 * 0.55);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(4, 12);
+      ctx.lineTo(6, 12);
+      ctx.lineTo(5, 12 + f2 * 0.55);
       ctx.closePath();
       ctx.fill();
 
