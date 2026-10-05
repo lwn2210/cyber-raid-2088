@@ -432,6 +432,82 @@
           osc.start(t + idx * 0.06);
           osc.stop(t + idx * 0.06 + 0.12);
         });
+      },
+      powerup() {
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(330, t);
+        osc.frequency.exponentialRampToValueAtTime(880, t + 0.18);
+        gain.gain.setValueAtTime(0.22, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start(t);
+        osc.stop(t + 0.3);
+      },
+      shieldUp() {
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, t);
+        osc.frequency.setValueAtTime(440, t + 0.06);
+        gain.gain.setValueAtTime(0.22, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start(t);
+        osc.stop(t + 0.3);
+      },
+      missileLaunch() {
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, t);
+        osc.frequency.exponentialRampToValueAtTime(480, t + 0.2);
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start(t);
+        osc.stop(t + 0.25);
+      },
+      emp() {
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(1200, t);
+        osc.frequency.exponentialRampToValueAtTime(80, t + 0.4);
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start(t);
+        osc.stop(t + 0.45);
+      },
+      overdrive() {
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        [523, 659, 784, 1046].forEach((f, idx) => {
+          const osc = ac.createOscillator();
+          const gain = ac.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(f, t + idx * 0.05);
+          gain.gain.setValueAtTime(0.14, t + idx * 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.05 + 0.12);
+          osc.connect(gain);
+          gain.connect(ac.destination);
+          osc.start(t + idx * 0.05);
+          osc.stop(t + idx * 0.05 + 0.12);
+        });
       }
     };
 
@@ -452,7 +528,7 @@
     let screenFlash = 0;
     let lastComboTime = 0;
 
-    // Player Plane (Authentic Retro Viper Jet)
+    // Player Plane (Authentic Retro Viper Jet) — Week2 Arsenal State
     const player = {
       x: W / 2,
       y: H - 130,
@@ -462,7 +538,13 @@
       tilt: 0,
       lastShot: 0,
       fireRate: 140,
-      invulnerable: 0
+      invulnerable: 0,
+      vulcanLevel: 1, // 1=Single, 2=Twin, 3=Quad
+      weaponMode: 'vulcan', // vulcan | spread | homing
+      weaponTimer: 0, // frames left for spread/homing temp mode (0 = permanent vulcan)
+      shield: 0, // frames of shield bubble left
+      overdrive: 0, // frames of overdrive left
+      muzzle: 0 // muzzle flash frames
     };
 
     let lasers = [];
@@ -472,6 +554,9 @@
     let floatTexts = [];
     let gems = [];
     let stars = [];
+    let homingMissiles = [];
+    let powerups = []; // {x,y,vy,kind:'vulcan'|'spread'|'homing'|'shield'|'emp'|'overdrive'}
+    let hitFlash = 0;
 
     // Dense Multilayer Starfield
     for (let i = 0; i < 90; i++) {
@@ -547,12 +632,22 @@
       player.y = H - 130;
       player.vx = 0;
       player.vy = 0;
+      player.vulcanLevel = 1;
+      player.weaponMode = 'vulcan';
+      player.weaponTimer = 0;
+      player.shield = 0;
+      player.overdrive = 0;
+      player.muzzle = 0;
+      player.fireRate = 140;
       lasers = [];
       enemyLasers = [];
       enemies = [];
       particles = [];
       floatTexts = [];
       gems = [];
+      homingMissiles = [];
+      powerups = [];
+      hitFlash = 0;
       screenShake = 0;
       screenFlash = 0;
       gameState = 'PLAYING';
@@ -597,7 +692,8 @@
         vx: vx,
         phase: Math.random() * Math.PI * 2,
         color: type === 'cruiser' ? '#ff0055' : (type === 'interceptor' ? '#ffe600' : '#00f0ff'),
-        lastShot: 0
+        lastShot: 0,
+        flash: 0
       });
     }
     setInterval(spawnEnemy, 800);
@@ -619,6 +715,118 @@
           decay: 0.03 + Math.random() * 0.04,
           color
         });
+      }
+    }
+
+    // Week2: shared kill routine (score, drops, juice)
+    function killEnemy(idx, e, now) {
+      const isHeavy = e.type === 'cruiser';
+      sfx.explosion(isHeavy);
+      screenShake = isHeavy ? 10 : 4;
+      hitFlash = isHeavy ? 0.35 : 0.18;
+      addSparks(e.x, e.y, e.color, isHeavy ? 30 : 16, isHeavy ? 6 : 4);
+      addSparks(e.x, e.y, '#ffffff', 8, 3);
+      const pts = (isHeavy ? 500 : 150) * combo;
+      score += pts;
+      addFloatingText(e.x, e.y, `+${pts}`);
+      // drops: gems + occasional powerup pod
+      if (Math.random() > 0.4) {
+        gems.push({ x: e.x, y: e.y, vy: 2.4 });
+      }
+      const dropRoll = Math.random();
+      if (isHeavy || dropRoll > 0.93) {
+        const kinds = ['vulcan', 'spread', 'homing', 'shield', 'emp', 'overdrive'];
+        const kind = isHeavy && Math.random() > 0.5
+          ? kinds[Math.floor(Math.random() * kinds.length)]
+          : (dropRoll > 0.985 ? 'overdrive' : (dropRoll > 0.97 ? 'shield' : (dropRoll > 0.955 ? 'emp' : kinds[Math.floor(Math.random() * 3)])));
+        powerups.push({ x: e.x, y: e.y, vy: 1.8, kind });
+      }
+      combo = Math.min(10, combo + 1);
+      lastComboTime = now;
+      updateHUD();
+      enemies.splice(idx, 1);
+    }
+
+    function applyPowerup(kind) {
+      if (kind === 'vulcan') {
+        player.vulcanLevel = Math.min(3, player.vulcanLevel + 1);
+        player.weaponMode = 'vulcan';
+        player.weaponTimer = 0;
+        sfx.powerup();
+        addFloatingText(player.x, player.y - 40, `VULCAN LV${player.vulcanLevel}`, '#00f0ff');
+      } else if (kind === 'spread') {
+        player.weaponMode = 'spread';
+        player.weaponTimer = 60 * 12;
+        sfx.powerup();
+        addFloatingText(player.x, player.y - 40, 'PLASMA SPREAD', '#ff8800');
+      } else if (kind === 'homing') {
+        player.weaponMode = 'homing';
+        player.weaponTimer = 60 * 12;
+        sfx.powerup();
+        addFloatingText(player.x, player.y - 40, 'HOMING MISSILES', '#ffdd00');
+      } else if (kind === 'shield') {
+        player.shield = 60 * 10;
+        sfx.shieldUp();
+        addFloatingText(player.x, player.y - 40, 'SHIELD UP', '#00ffcc');
+      } else if (kind === 'emp') {
+        triggerEMP();
+      } else if (kind === 'overdrive') {
+        player.overdrive = 60 * 8;
+        sfx.overdrive();
+        addFloatingText(player.x, player.y - 40, 'OVERDRIVE!', '#ffe600');
+      }
+    }
+
+    function triggerEMP() {
+      sfx.emp();
+      screenFlash = 0.7;
+      screenShake = 14;
+      hitFlash = 0.4;
+      addFloatingText(player.x, player.y - 50, 'EMP BLAST', '#00ffff');
+      // nuke all on-screen enemies + enemy bullets
+      for (let k = enemies.length - 1; k >= 0; k--) {
+        const e = enemies[k];
+        addSparks(e.x, e.y, '#00ffff', 14, 5);
+        const pts = 200 * combo;
+        score += pts;
+        addFloatingText(e.x, e.y, `+${pts}`);
+        if (Math.random() > 0.6) gems.push({ x: e.x, y: e.y, vy: 2.4 });
+        enemies.splice(k, 1);
+      }
+      for (const el of enemyLasers) addSparks(el.x, el.y, '#00ffff', 4, 3);
+      enemyLasers = [];
+      combo = Math.min(10, combo + 1);
+      lastComboTime = performance.now();
+      updateHUD();
+    }
+
+    function damagePlayer(now) {
+      if (player.invulnerable > 0) return;
+      if (player.shield > 0) {
+        sfx.shieldUp();
+        addSparks(player.x, player.y, '#00ffcc', 18, 5);
+        addFloatingText(player.x, player.y - 40, 'SHIELD BLOCK', '#00ffcc');
+        player.invulnerable = 30;
+        player.shield = Math.max(0, player.shield - 60 * 2);
+        return;
+      }
+      sfx.explosion(true);
+      screenShake = 12;
+      screenFlash = 0.4;
+      addSparks(player.x, player.y, '#ff0055', 25, 6);
+      lives--;
+      combo = 1;
+      player.invulnerable = 60;
+      // drop a vulcan level on hit
+      player.vulcanLevel = Math.max(1, player.vulcanLevel - 1);
+      player.weaponMode = 'vulcan';
+      player.weaponTimer = 0;
+      updateHUD();
+      if (lives <= 0) {
+        gameState = 'GAMEOVER';
+        document.getElementById('finalScore').textContent = score;
+        document.getElementById('gameOverTaunt').textContent = taunts[Math.floor(Math.random() * taunts.length)];
+        document.getElementById('gameOverScreen').style.display = 'flex';
       }
     }
 
@@ -753,12 +961,38 @@
       ctx.restore();
     }
 
-    // Render Pixel Enemy Craft
+    // Render Pixel Enemy Craft (Week2: white hit-flash)
+    function renderPowerup(p) {
+      const colors = { vulcan: '#00f0ff', spread: '#ff8800', homing: '#ffdd00', shield: '#00ffcc', emp: '#00ffff', overdrive: '#ffe600' };
+      const c = colors[p.kind] || '#ffffff';
+      const bob = Math.sin(performance.now() / 240 + p.x) * 3;
+      ctx.save();
+      ctx.translate(p.x, p.y + bob);
+      ctx.fillStyle = 'rgba(0,0,0,0.85)';
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = c;
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(0, 0, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = c;
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const glyph = p.kind === 'vulcan' ? 'V' : p.kind === 'spread' ? 'S' : p.kind === 'homing' ? 'H' : p.kind === 'shield' ? 'O' : p.kind === 'emp' ? 'E' : 'X';
+      ctx.fillText(glyph, 0, 1);
+      ctx.restore();
+    }
+
     function renderEnemy(e) {
       ctx.save();
       ctx.translate(e.x, e.y);
-      ctx.fillStyle = e.color;
-      ctx.shadowColor = e.color;
+      const flashed = e.flash > 0;
+      ctx.fillStyle = flashed ? '#ffffff' : e.color;
+      ctx.shadowColor = flashed ? '#ffffff' : e.color;
       ctx.shadowBlur = 12;
 
       if (e.type === 'cruiser') {
@@ -860,14 +1094,51 @@
         player.x = Math.max(24, Math.min(W - 24, player.x));
         player.y = Math.max(40, Math.min(H - 40, player.y));
 
-        // 3. Firing Weapons
+        // 3. Firing Weapons — Week2 Arsenal (Vulcan 1-3, Spread, Homing, Overdrive)
+        if (player.weaponTimer > 0) {
+          player.weaponTimer--;
+          if (player.weaponTimer <= 0 && player.weaponMode !== 'vulcan') {
+            player.weaponMode = 'vulcan';
+            addFloatingText(player.x, player.y - 40, 'VULCAN', '#00f0ff');
+          }
+        }
+        if (player.shield > 0) player.shield--;
+        if (player.overdrive > 0) player.overdrive--;
+        if (player.muzzle > 0) player.muzzle--;
+        const effectiveFireRate = player.overdrive > 0 ? 70 : player.fireRate;
         const isFiring = keys['Space'] || btnShootDown || touchFiring;
-        if (isFiring && now - player.lastShot > player.fireRate) {
+        if (isFiring && now - player.lastShot > effectiveFireRate) {
           player.lastShot = now;
+          player.muzzle = 4;
           const pitch = 0.95 + Math.min(combo * 0.05, 0.6);
-          sfx.laser(pitch);
-          lasers.push({ x: player.x - 18, y: player.y - 4, w: 4, h: 16 });
-          lasers.push({ x: player.x + 18, y: player.y - 4, w: 4, h: 16 });
+          if (player.weaponMode === 'spread') {
+            sfx.laser(pitch);
+            const angles = [-0.22, -0.11, 0, 0.11, 0.22];
+            for (const a of angles) {
+              lasers.push({ x: player.x, y: player.y - 10, w: 4, h: 14, vx: Math.sin(a) * 6, vy: -Math.cos(a) * 14 });
+            }
+          } else if (player.weaponMode === 'homing') {
+            sfx.missileLaunch();
+            for (const off of [-14, 14]) {
+              homingMissiles.push({ x: player.x + off, y: player.y, vx: off * 0.15, vy: -6, life: 120 });
+            }
+            lasers.push({ x: player.x, y: player.y - 10, w: 4, h: 14 });
+          } else {
+            sfx.laser(pitch);
+            const lvl = player.overdrive > 0 ? 3 : player.vulcanLevel;
+            if (lvl <= 1) {
+              lasers.push({ x: player.x, y: player.y - 10, w: 4, h: 16 });
+            } else if (lvl === 2) {
+              lasers.push({ x: player.x - 18, y: player.y - 4, w: 4, h: 16 });
+              lasers.push({ x: player.x + 18, y: player.y - 4, w: 4, h: 16 });
+            } else {
+              lasers.push({ x: player.x, y: player.y - 10, w: 4, h: 16 });
+              lasers.push({ x: player.x - 18, y: player.y - 4, w: 4, h: 16 });
+              lasers.push({ x: player.x + 18, y: player.y - 4, w: 4, h: 16 });
+              lasers.push({ x: player.x - 8, y: player.y - 6, w: 3, h: 12, vx: -2 });
+              lasers.push({ x: player.x + 8, y: player.y - 6, w: 3, h: 12, vx: 2 });
+            }
+          }
         }
 
         // Combo decay
@@ -875,16 +1146,77 @@
           combo = 1;
         }
 
-        // 4. Update Player Lasers
+        // 4. Update Player Lasers (supports spread vx)
         for (let i = lasers.length - 1; i >= 0; i--) {
           const l = lasers[i];
-          l.y -= 14;
-          ctx.fillStyle = '#00f0ff';
-          ctx.shadowColor = '#00f0ff';
+          l.y += (l.vy !== undefined ? l.vy : -14);
+          l.x += (l.vx !== undefined ? l.vx : 0);
+          ctx.fillStyle = player.overdrive > 0 ? '#ffe600' : '#00f0ff';
+          ctx.shadowColor = player.overdrive > 0 ? '#ffe600' : '#00f0ff';
           ctx.shadowBlur = 8;
           ctx.fillRect(l.x - l.w / 2, l.y, l.w, l.h);
           ctx.shadowBlur = 0;
-          if (l.y < -20) lasers.splice(i, 1);
+          if (l.y < -20 || l.x < -20 || l.x > W + 20) lasers.splice(i, 1);
+        }
+
+        // 4b. Update Homing Missiles
+        for (let i = homingMissiles.length - 1; i >= 0; i--) {
+          const m = homingMissiles[i];
+          m.life--;
+          // find nearest enemy
+          let best = null; let bestD = 1e9;
+          for (const e of enemies) {
+            const dx = e.x - m.x; const dy = e.y - m.y;
+            const d = dx * dx + dy * dy;
+            if (d < bestD) { bestD = d; best = e; }
+          }
+          if (best) {
+            const ang = Math.atan2(best.y - m.y, best.x - m.x);
+            const cur = Math.atan2(m.vy, m.vx);
+            let diff = ang - cur;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            const turn = Math.max(-0.25, Math.min(0.25, diff));
+            const speed = Math.min(11, Math.hypot(m.vx, m.vy) + 0.35);
+            const na = cur + turn;
+            m.vx = Math.cos(na) * speed;
+            m.vy = Math.sin(na) * speed;
+          } else {
+            m.vy -= 0.15;
+          }
+          m.x += m.vx; m.y += m.vy;
+          // trail
+          if (Math.random() > 0.5) particles.push({ x: m.x, y: m.y + 4, vx: (Math.random() - 0.5) * 1.5, vy: 1.5 + Math.random(), life: 0.6, decay: 0.05, color: '#ff8800' });
+          ctx.fillStyle = '#ffdd00';
+          ctx.shadowColor = '#ff8800';
+          ctx.shadowBlur = 10;
+          ctx.save();
+          ctx.translate(m.x, m.y);
+          ctx.rotate(Math.atan2(m.vy, m.vx) + Math.PI / 2);
+          ctx.fillRect(-3, -8, 6, 16);
+          ctx.fillStyle = '#ff4400';
+          ctx.fillRect(-2, 6, 4, 5);
+          ctx.restore();
+          ctx.shadowBlur = 0;
+          // collide with enemies
+          let hitSomething = false;
+          for (let k = enemies.length - 1; k >= 0; k--) {
+            const e = enemies[k];
+            if (Math.abs(m.x - e.x) < e.w / 2 + 6 && Math.abs(m.y - e.y) < e.h / 2 + 6) {
+              e.hp -= 2;
+              e.flash = 5;
+              hitFlash = 0.15;
+              addSparks(m.x, m.y, '#ffaa00', 12, 5);
+              sfx.hit();
+              if (e.hp <= 0) killEnemy(k, e, now);
+              hitSomething = true;
+              break;
+            }
+          }
+          if (hitSomething || m.life <= 0 || m.y < -30 || m.x < -30 || m.x > W + 30) {
+            if (m.life > 0 && !hitSomething) addSparks(m.x, m.y, '#ff8800', 6, 3);
+            homingMissiles.splice(i, 1);
+          }
         }
 
         // 5. Update Enemy Counter-Lasers
@@ -902,23 +1234,7 @@
 
           if (Math.abs(player.x - el.x) < 20 && Math.abs(player.y - el.y) < 22) {
             enemyLasers.splice(i, 1);
-            if (player.invulnerable <= 0) {
-              sfx.explosion(true);
-              screenShake = 12;
-              screenFlash = 0.4;
-              addSparks(player.x, player.y, '#ff0055', 25, 6);
-              lives--;
-              combo = 1;
-              player.invulnerable = 60;
-              updateHUD();
-
-              if (lives <= 0) {
-                gameState = 'GAMEOVER';
-                document.getElementById('finalScore').textContent = score;
-                document.getElementById('gameOverTaunt').textContent = taunts[Math.floor(Math.random() * taunts.length)];
-                document.getElementById('gameOverScreen').style.display = 'flex';
-              }
-            }
+            damagePlayer(now);
           } else if (el.y > H + 20 || el.x < -20 || el.x > W + 20) {
             enemyLasers.splice(i, 1);
           }
@@ -954,6 +1270,7 @@
             e.x += e.vx;
           }
 
+          if (e.flash > 0) e.flash--;
           renderEnemy(e);
 
           // Player Lasers Collision
@@ -962,25 +1279,11 @@
             if (Math.abs(l.x - e.x) < e.w / 2 + 4 && Math.abs(l.y - e.y) < e.h / 2 + 6) {
               lasers.splice(j, 1);
               e.hp--;
+              e.flash = 5;
+              hitFlash = 0.15;
               addSparks(l.x, l.y, '#00f0ff', 4, 3);
               if (e.hp <= 0) {
-                const isHeavy = e.type === 'cruiser';
-                sfx.explosion(isHeavy);
-                screenShake = isHeavy ? 10 : 4;
-                addSparks(e.x, e.y, e.color, isHeavy ? 30 : 16, isHeavy ? 6 : 4);
-
-                const pts = (isHeavy ? 500 : 150) * combo;
-                score += pts;
-                addFloatingText(e.x, e.y, `+${pts}`);
-
-                if (Math.random() > 0.4) {
-                  gems.push({ x: e.x, y: e.y, vy: 2.4 });
-                }
-
-                combo = Math.min(10, combo + 1);
-                lastComboTime = now;
-                updateHUD();
-                enemies.splice(i, 1);
+                killEnemy(i, e, now);
                 break;
               } else {
                 sfx.hit();
@@ -990,24 +1293,9 @@
 
           // Crash into player
           if (enemies[i] && Math.abs(player.x - e.x) < 28 && Math.abs(player.y - e.y) < 28) {
-            if (player.invulnerable <= 0) {
-              sfx.explosion(true);
-              screenShake = 14;
-              screenFlash = 0.5;
-              addSparks(player.x, player.y, '#ff0055', 25, 7);
-              lives--;
-              combo = 1;
-              player.invulnerable = 60;
-              updateHUD();
-              enemies.splice(i, 1);
-
-              if (lives <= 0) {
-                gameState = 'GAMEOVER';
-                document.getElementById('finalScore').textContent = score;
-                document.getElementById('gameOverTaunt').textContent = taunts[Math.floor(Math.random() * taunts.length)];
-                document.getElementById('gameOverScreen').style.display = 'flex';
-              }
-            }
+            enemies.splice(i, 1);
+            addSparks(e.x, e.y, e.color, 16, 5);
+            damagePlayer(now);
           }
 
           if (enemies[i] && (enemies[i].y > H + 50 || enemies[i].x < -60 || enemies[i].x > W + 60)) {
@@ -1043,12 +1331,66 @@
           }
         }
 
-        // 8. Draw Player
+        // 7b. Power-Up Pods (Week2 drops)
+        for (let i = powerups.length - 1; i >= 0; i--) {
+          const p = powerups[i];
+          p.y += p.vy;
+          renderPowerup(p);
+          if (Math.abs(player.x - p.x) < 34 && Math.abs(player.y - p.y) < 34) {
+            applyPowerup(p.kind);
+            addSparks(p.x, p.y, '#ffffff', 12, 4);
+            powerups.splice(i, 1);
+          } else if (p.y > H + 30) {
+            powerups.splice(i, 1);
+          }
+        }
+
+        // 8. Draw Player (Week2: shield bubble + muzzle flash + overdrive aura)
         if (player.invulnerable > 0) {
           player.invulnerable--;
           if (Math.floor(player.invulnerable / 4) % 2 === 0) ctx.globalAlpha = 0.3;
         }
         renderPlayerPlane(player.x, player.y, player.tilt);
+        // muzzle flash
+        if (player.muzzle > 0) {
+          ctx.fillStyle = '#fff7ae';
+          ctx.shadowColor = '#ffe600';
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.arc(player.x, player.y - 22, 7 + Math.random() * 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+        // shield bubble
+        if (player.shield > 0) {
+          const pulse = 30 + Math.sin(performance.now() / 150) * 4;
+          ctx.strokeStyle = player.shield < 120 ? 'rgba(0,255,204,0.5)' : 'rgba(0,255,204,0.9)';
+          ctx.lineWidth = 2.5;
+          ctx.shadowColor = '#00ffcc';
+          ctx.shadowBlur = 16;
+          ctx.beginPath();
+          ctx.arc(player.x, player.y, pulse, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
+        // overdrive aura
+        if (player.overdrive > 0) {
+          ctx.strokeStyle = 'rgba(255,230,0,0.7)';
+          ctx.lineWidth = 2;
+          ctx.shadowColor = '#ffe600';
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(player.x, player.y, 38 + Math.sin(performance.now() / 90) * 3, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
+        // weapon status tag
+        ctx.font = '9px "Press Start 2P", monospace';
+        ctx.fillStyle = player.weaponMode === 'vulcan' ? '#00f0ff' : player.weaponMode === 'spread' ? '#ff8800' : '#ffdd00';
+        ctx.globalAlpha = 0.9;
+        const wtag = player.overdrive > 0 ? 'OVERDRIVE' : player.weaponMode === 'vulcan' ? `VULCAN LV${player.vulcanLevel}` : player.weaponMode.toUpperCase();
+        ctx.fillText(wtag, player.x - 34, player.y + 52);
+        ctx.globalAlpha = 1.0;
         ctx.globalAlpha = 1.0;
       }
 
@@ -1083,7 +1425,14 @@
         }
       }
 
-      // Flash on critical hit
+      // White hit flash — set on every laser hit, EMP blast, and kill
+      if (hitFlash > 0) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${hitFlash})`;
+        ctx.fillRect(0, 0, W, H);
+        hitFlash = Math.max(0, hitFlash - 0.06);
+      }
+
+      // Flash on critical hit (damage taken / EMP)
       if (screenFlash > 0) {
         ctx.fillStyle = `rgba(255, 0, 85, ${screenFlash})`;
         ctx.fillRect(0, 0, W, H);
