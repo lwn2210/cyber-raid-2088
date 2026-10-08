@@ -28,6 +28,12 @@ Play instantly in your browser (Desktop & Mobile Touch supported):
   - **Desktop:** `W`, `A`, `S`, `D` or Arrow keys + `SPACE` to fire.
   - **Mobile:** Direct touch screen drag tracking + Virtual 4-Way D-Pad & Fire button.
 - **Dynamic Pitch-Scaling Sound:** Laser and explosion pitch scale smoothly with your combo streak.
+- **🆕 Arcade Excellence Pass (Game Feel Overhaul):**
+  - 💥 **Hit-Stop Freeze:** 3–5 frame true freeze on heavy kills, EMP blasts, boss phase breaks & final destruction — every impact *feels* heavier.
+  - 🌊 **Shockwave Rings:** Expanding blast rings on EMP (220px), cruiser kills, core exposure and the Mothership death blast.
+  - 🐌 **Boss Slow-Mo Death:** The dying cascade opens in slow motion before the chain explosions take over.
+  - 🔊 **New Sound Synthesis:** Three-tone `alarm` klaxon on boss warning & core exposure, charged `phaser` on Plasma Spread, lowpass-noise `thruster` engine rumble every second of flight.
+  - ✨ **Combo Popup:** Kill scores now show their multiplier (`+300 x2`).
 
 ---
 

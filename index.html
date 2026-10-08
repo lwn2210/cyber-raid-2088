@@ -524,6 +524,59 @@
           osc.start(t + idx * 0.05);
           osc.stop(t + idx * 0.05 + 0.12);
         });
+      },
+      alarm() {
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        for (let i = 0; i < 3; i++) {
+          const osc = ac.createOscillator();
+          const gain = ac.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(740, t + i * 0.28);
+          osc.frequency.setValueAtTime(560, t + i * 0.28 + 0.12);
+          gain.gain.setValueAtTime(0.16, t + i * 0.28);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.28 + 0.22);
+          osc.connect(gain);
+          gain.connect(ac.destination);
+          osc.start(t + i * 0.28);
+          osc.stop(t + i * 0.28 + 0.22);
+        }
+      },
+      phaser(pitch = 1.0) {
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(1600 * pitch, t);
+        osc.frequency.exponentialRampToValueAtTime(320 * pitch, t + 0.14);
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start(t);
+        osc.stop(t + 0.15);
+      },
+      thruster() {
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        const dur = 0.6;
+        const bufferSize = Math.floor(ac.sampleRate * dur);
+        const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+        const src = ac.createBufferSource();
+        src.buffer = buffer;
+        const filter = ac.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(500, t);
+        const gain = ac.createGain();
+        gain.gain.setValueAtTime(0.14, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(ac.destination);
+        src.start(t);
       }
     };
 
@@ -573,6 +626,9 @@
     let homingMissiles = [];
     let powerups = []; // {x,y,vy,kind:'vulcan'|'spread'|'homing'|'shield'|'emp'|'overdrive'}
     let hitFlash = 0;
+    let shockRings = [];
+    let hitStop = 0;
+    let engineTick = 0;
 
     /* ==========================================================================
        WEEK 3: SECTOR STAGES & BOSS ENCOUNTERS STATE
@@ -697,6 +753,7 @@
         timer: 200
       };
       sfx.emp();
+      sfx.alarm();
       screenShake = 16;
       screenFlash = 0.5;
     }
@@ -793,6 +850,8 @@
       hitFlash = 0;
       screenShake = 0;
       screenFlash = 0;
+      hitStop = 0;
+      shockRings = [];
       currentSectorIndex = 0;
       sectorBanner = { text: 'SECTOR 1: ASTEROID BELT', sub: 'SURVIVE THE METEOR HAZARDS', timer: 160 };
       boss = null;
@@ -905,17 +964,25 @@
       }
     }
 
+    function addShockwave(x, y, color, maxR = 90, speed = 5) {
+      shockRings.push({ x, y, r: 6, maxR, speed, color, life: 1 });
+    }
+
     // Week2: shared kill routine (score, drops, juice)
     function killEnemy(idx, e, now) {
       const isHeavy = e.type === 'cruiser';
       sfx.explosion(isHeavy);
       screenShake = isHeavy ? 10 : 4;
       hitFlash = isHeavy ? 0.35 : 0.18;
+      if (isHeavy) {
+        hitStop = 3;
+        addShockwave(e.x, e.y, '#ffe600', 80, 5);
+      }
       addSparks(e.x, e.y, e.color, isHeavy ? 30 : 16, isHeavy ? 6 : 4);
       addSparks(e.x, e.y, '#ffffff', 8, 3);
       const pts = (isHeavy ? 500 : 150) * combo;
       score += pts;
-      addFloatingText(e.x, e.y, `+${pts}`);
+      addFloatingText(e.x, e.y, `+${pts}${combo > 1 ? ' x' + combo : ''}`);
       // drops: gems + occasional powerup pod
       if (Math.random() > 0.4) {
         gems.push({ x: e.x, y: e.y, vy: 2.4 });
@@ -969,6 +1036,8 @@
       screenFlash = 0.7;
       screenShake = 14;
       hitFlash = 0.4;
+      hitStop = 3;
+      addShockwave(player.x, player.y, '#00ffff', 220, 8);
       addFloatingText(player.x, player.y - 50, 'EMP BLAST', '#00ffff');
       // nuke all on-screen enemies + enemy bullets
       for (let k = enemies.length - 1; k >= 0; k--) {
@@ -1262,6 +1331,21 @@
       const dt = now - lastTime;
       lastTime = now;
 
+      // EXCELLENCE PASS: hit-stop freeze (3-5 frame true freeze on big kills)
+      if (hitStop > 0) {
+        hitStop--;
+        requestAnimationFrame(loop);
+        return;
+      }
+      // EXCELLENCE PASS: slow-motion during first ~50 frames of boss death cascade
+      if (boss && boss.active && boss.phase === 3 && boss.deathTimer > 130) {
+        boss.slowTick = (boss.slowTick || 0) + 1;
+        if (boss.slowTick % 2 === 1) {
+          requestAnimationFrame(loop);
+          return;
+        }
+      }
+
       // Screen Shake & Screen Flash handling
       ctx.save();
       if (screenShake > 0) {
@@ -1402,6 +1486,8 @@
         if (player.shield > 0) player.shield--;
         if (player.overdrive > 0) player.overdrive--;
         if (player.muzzle > 0) player.muzzle--;
+        engineTick++;
+        if (engineTick % 55 === 0) sfx.thruster();
         const effectiveFireRate = player.overdrive > 0 ? 70 : player.fireRate;
         const isFiring = keys['Space'] || btnShootDown || touchFiring;
         if (isFiring && now - player.lastShot > effectiveFireRate) {
@@ -1409,7 +1495,7 @@
           player.muzzle = 4;
           const pitch = 0.95 + Math.min(combo * 0.05, 0.6);
           if (player.weaponMode === 'spread') {
-            sfx.laser(pitch);
+            sfx.phaser(pitch);
             const angles = [-0.22, -0.11, 0, 0.11, 0.22];
             for (const a of angles) {
               lasers.push({ x: player.x, y: player.y - 10, w: 4, h: 14, vx: Math.sin(a) * 6, vy: -Math.cos(a) * 14 });
@@ -1597,8 +1683,11 @@
               boss.phase = 2;
               boss.core.exposed = true;
               sfx.emp();
+              sfx.alarm();
               screenShake = 18;
               screenFlash = 0.6;
+              hitStop = 4;
+              addShockwave(boss.x, boss.y + 20, '#00f0ff', 160, 6);
               sectorBanner = {
                 text: 'CORE EXPOSED!',
                 sub: 'DESTROY THE PULSATING REACTOR!',
@@ -1665,6 +1754,9 @@
               sfx.explosion(true);
               screenShake = 24;
               screenFlash = 0.8;
+              hitStop = 5;
+              addShockwave(boss.x, boss.y, '#ffe600', 260, 9);
+              addShockwave(boss.x, boss.y, '#ffffff', 180, 6);
               addSparks(boss.x, boss.y, '#ffe600', 60, 9);
               addSparks(boss.x, boss.y, '#00ffff', 40, 8);
               const bossPts = 12000 * combo;
@@ -2092,6 +2184,24 @@
           ctx.fillStyle = ft.color;
           ctx.globalAlpha = ft.life;
           ctx.fillText(ft.text, ft.x - 20, ft.y);
+          ctx.globalAlpha = 1.0;
+        }
+      }
+
+      // EXCELLENCE PASS: shockwave rings (EMP, heavy kills, boss events)
+      for (let i = shockRings.length - 1; i >= 0; i--) {
+        const ring = shockRings[i];
+        ring.r += ring.speed;
+        ring.life -= 0.045;
+        if (ring.life <= 0 || ring.r >= ring.maxR) {
+          shockRings.splice(i, 1);
+        } else {
+          ctx.strokeStyle = ring.color;
+          ctx.globalAlpha = Math.max(0, ring.life);
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
+          ctx.stroke();
           ctx.globalAlpha = 1.0;
         }
       }
