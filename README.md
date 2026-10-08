@@ -28,6 +28,11 @@ Play instantly in your browser (Desktop & Mobile Touch supported):
   - **Desktop:** `W`, `A`, `S`, `D` or Arrow keys + `SPACE` to fire.
   - **Mobile:** Direct touch screen drag tracking + Virtual 4-Way D-Pad & Fire button.
 - **Dynamic Pitch-Scaling Sound:** Laser and explosion pitch scale smoothly with your combo streak.
+- **🆕 Week 4 — Procedural Chiptune BGM Engine (Zero MP3):**
+  - 🎵 **4-Channel WebAudio Synth:** Square lead + triangle chord pads + driving triangle bass + noise-drum kit (kick/snare/hat), semua disintesis realtime — 0 KB file audio.
+  - 🎼 **3 Sector Themes:** `asteroid` (A-minor 132 BPM space rock), `neon` (D-minor 120 BPM synthwave), `fleet` (E-minor 150 BPM boss assault).
+  - ⏱️ **Lookahead Scheduler:** Pattern 16-step dijadwalkan 150 ms di depan via timer 30 ms — timing solid tanpa jitter.
+  - 🔀 **Seamless Transitions:** Tema ikut sektor (start → asteroid, Neon City → neon, boss encounter → fleet), berhenti bersih saat game over.
 - **🆕 Arcade Excellence Pass (Game Feel Overhaul):**
   - 💥 **Hit-Stop Freeze:** 3–5 frame true freeze on heavy kills, EMP blasts, boss phase breaks & final destruction — every impact *feels* heavier.
   - 🌊 **Shockwave Rings:** Expanding blast rings on EMP (220px), cruiser kills, core exposure and the Mothership death blast.
