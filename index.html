@@ -581,6 +581,154 @@
     };
 
     /* ==========================================================================
+       WEEK 4: PROCEDURAL CHIPTUNE BGM ENGINE (Zero MP3 — 4-Channel WebAudio Synth)
+       Lead (square) + Chords (triangle pad) + Bass (triangle drive) + Drums (noise/sine)
+       Lookahead scheduler: setInterval 30ms, schedule 0.15s ahead, 16-step patterns.
+       ========================================================================== */
+    const bgm = {
+      playing: false,
+      current: null,
+      step: 0,
+      nextNoteTime: 0,
+      timer: null,
+      master: null,
+
+      PATTERNS: {
+        asteroid: { // Sector 1 — A minor, driving space rock
+          tempo: 132,
+          bass:   [45,0,45,57, 0,45,0,43, 45,0,45,57, 0,48,0,43],
+          lead:   [69,0,72,0, 76,0,74,72, 69,0,72,74, 76,0,79,0],
+          chords: [57,0,0,0, 60,0,0,0, 57,0,0,0, 55,0,0,0],
+          kick:   [1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,1,0],
+          snare:  [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,1],
+          hat:    [0,1,0,1, 0,1,0,1, 0,1,0,1, 0,1,1,1]
+        },
+        neon: { // Sector 2 — D minor synthwave, smoother groove
+          tempo: 120,
+          bass:   [38,0,38,50, 0,38,0,36, 38,0,38,50, 0,41,0,36],
+          lead:   [62,0,65,0, 69,0,67,65, 62,0,65,67, 69,0,74,0],
+          chords: [50,0,0,0, 53,0,0,0, 50,0,0,0, 48,0,0,0],
+          kick:   [1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0],
+          snare:  [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+          hat:    [1,1,0,1, 1,1,0,1, 1,1,0,1, 1,1,1,1]
+        },
+        fleet: { // Sector 3 / Boss — E minor, aggressive fast attack
+          tempo: 150,
+          bass:   [40,40,0,40, 40,0,43,0, 40,40,0,40, 45,0,43,0],
+          lead:   [64,0,67,0, 71,0,69,67, 64,0,67,69, 71,0,76,0],
+          chords: [52,0,0,0, 55,0,0,0, 52,0,0,0, 50,0,0,0],
+          kick:   [1,0,0,1, 0,0,1,0, 1,0,0,1, 0,0,1,0],
+          snare:  [0,0,0,0, 1,0,0,0, 0,0,1,0, 1,0,0,1],
+          hat:    [1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1]
+        }
+      },
+
+      midi(n) { return 440 * Math.pow(2, (n - 69) / 12); },
+
+      ensureMaster() {
+        if (!this.master) {
+          this.master = getAudioCtx().createGain();
+          this.master.gain.value = 0.5;
+          this.master.connect(getAudioCtx().destination);
+        }
+      },
+
+      start(patternName) {
+        this.ensureMaster();
+        if (this.current === patternName && this.playing) return;
+        this.current = patternName;
+        this.step = 0;
+        this.nextNoteTime = getAudioCtx().currentTime + 0.06;
+        this.playing = true;
+        if (!this.timer) {
+          this.timer = setInterval(() => this.scheduler(), 30);
+        }
+      },
+
+      stop() {
+        this.playing = false;
+        this.current = null;
+        if (this.timer) { clearInterval(this.timer); this.timer = null; }
+      },
+
+      scheduler() {
+        if (!this.playing || !this.current) return;
+        const pat = this.PATTERNS[this.current];
+        if (!pat) return;
+        const ac = getAudioCtx();
+        const stepDur = 60 / pat.tempo / 4; // 16th notes
+        while (this.nextNoteTime < ac.currentTime + 0.15) {
+          this.playStep(pat, this.step, this.nextNoteTime, stepDur);
+          this.nextNoteTime += stepDur;
+          this.step = (this.step + 1) % 16;
+        }
+      },
+
+      playStep(pat, step, t, stepDur) {
+        const ac = getAudioCtx();
+        if (pat.lead[step]) {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'square';
+          o.frequency.value = this.midi(pat.lead[step]);
+          g.gain.setValueAtTime(0.05, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + stepDur * 1.8);
+          o.connect(g); g.connect(this.master);
+          o.start(t); o.stop(t + stepDur * 2);
+        }
+        if (pat.chords[step]) {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'triangle';
+          o.frequency.value = this.midi(pat.chords[step]);
+          g.gain.setValueAtTime(0.03, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + stepDur * 3.5);
+          o.connect(g); g.connect(this.master);
+          o.start(t); o.stop(t + stepDur * 4);
+        }
+        if (pat.bass[step]) {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'triangle';
+          o.frequency.value = this.midi(pat.bass[step]);
+          g.gain.setValueAtTime(0.07, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + stepDur * 0.9);
+          o.connect(g); g.connect(this.master);
+          o.start(t); o.stop(t + stepDur);
+        }
+        if (pat.kick[step]) {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'sine';
+          o.frequency.setValueAtTime(150, t);
+          o.frequency.exponentialRampToValueAtTime(40, t + 0.1);
+          g.gain.setValueAtTime(0.16, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+          o.connect(g); g.connect(this.master);
+          o.start(t); o.stop(t + 0.12);
+        }
+        if (pat.snare[step] || pat.hat[step]) {
+          const dur = pat.snare[step] ? 0.09 : 0.03;
+          const bufSize = Math.floor(ac.sampleRate * dur);
+          const buf = ac.createBuffer(1, bufSize, ac.sampleRate);
+          const data = buf.getChannelData(0);
+          for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+          const src = ac.createBufferSource();
+          src.buffer = buf;
+          const g = ac.createGain();
+          g.gain.setValueAtTime(pat.snare[step] ? 0.1 : 0.045, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+          if (pat.snare[step]) {
+            const f = ac.createBiquadFilter();
+            f.type = 'highpass';
+            f.frequency.value = 1200;
+            src.connect(f); f.connect(g);
+          } else {
+            src.connect(g);
+          }
+          g.connect(this.master);
+          src.start(t);
+        }
+      }
+    };
+
+    /* ==========================================================================
        GAME ENGINE & ARCADE FEEL
        ========================================================================== */
     const canvas = document.getElementById('gameCanvas');
@@ -756,6 +904,7 @@
       sfx.alarm();
       screenShake = 16;
       screenFlash = 0.5;
+      bgm.start('fleet');
     }
 
     // Dense Multilayer Starfield
@@ -857,6 +1006,7 @@
       boss = null;
       initAsteroids();
       initNeonCity();
+      bgm.start('asteroid');
       gameState = 'PLAYING';
       updateHUD();
     }
@@ -876,6 +1026,7 @@
         currentSectorIndex = 1;
         sectorBanner = { text: 'SECTOR 2: NEON CITY', sub: 'APPROACHING METROPOLIS SKIES', timer: 180 };
         sfx.powerup();
+        bgm.start('neon');
         screenFlash = 0.3;
         updateHUD();
       } else if (currentSectorIndex === 1 && score >= SECTOR_DEFS[2].scoreReq) {
@@ -1109,6 +1260,7 @@
       updateHUD();
       if (lives <= 0) {
         gameState = 'GAMEOVER';
+        bgm.stop();
         document.getElementById('finalScore').textContent = score;
         document.getElementById('gameOverTaunt').textContent = taunts[Math.floor(Math.random() * taunts.length)];
         document.getElementById('gameOverScreen').style.display = 'flex';
