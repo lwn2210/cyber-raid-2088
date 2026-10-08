@@ -268,6 +268,7 @@
 
     <div class="bezel-top">
       <div class="hud-title">1UP <span id="hudScore" style="color: #fff;">00</span></div>
+      <div class="hud-title" style="color: var(--neon-green);">SEC <span id="hudSector" style="color: #fff;">1</span></div>
       <div class="hud-high">HI <span id="hudHigh" style="color: #fff;">25000</span></div>
       <div class="hud-lives">SHIPS <span id="hudLives" style="color: #fff;">3</span></div>
     </div>
@@ -417,6 +418,21 @@
         osc.start(t);
         osc.stop(t + 0.12);
       },
+      zap(pitch = 1.0) {
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(1200 * pitch, t);
+        osc.frequency.exponentialRampToValueAtTime(240 * pitch, t + 0.08);
+        gain.gain.setValueAtTime(0.24, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start(t);
+        osc.stop(t + 0.09);
+      },
       coinInsert() {
         const ac = getAudioCtx();
         const t = ac.currentTime;
@@ -558,6 +574,133 @@
     let powerups = []; // {x,y,vy,kind:'vulcan'|'spread'|'homing'|'shield'|'emp'|'overdrive'}
     let hitFlash = 0;
 
+    /* ==========================================================================
+       WEEK 3: SECTOR STAGES & BOSS ENCOUNTERS STATE
+       ========================================================================== */
+    const SECTOR_DEFS = [
+      { id: 1, name: 'ASTEROID BELT', theme: 'asteroid', scoreReq: 0, desc: 'SURVIVE THE METEOR HAZARDS' },
+      { id: 2, name: 'NEON CITY', theme: 'neon-city', scoreReq: 4000, desc: 'SKYSCRAPER COMBAT ZONE' },
+      { id: 3, name: 'FLEET CORE', theme: 'fleet-core', scoreReq: 9000, desc: 'DREADNOUGHT CARRIER ENCOUNTER' }
+    ];
+    let currentSectorIndex = 0;
+    let sectorBanner = { text: 'SECTOR 1: ASTEROID BELT', sub: 'SURVIVE THE METEOR HAZARDS', timer: 160 };
+
+    // Sector 1: Asteroid Belt background entities
+    let asteroids = [];
+    function initAsteroids() {
+      asteroids = [];
+      for (let i = 0; i < 9; i++) {
+        const pts = [];
+        const n = 8;
+        const r = 16 + Math.random() * 26;
+        for (let j = 0; j < n; j++) {
+          const a = (j / n) * Math.PI * 2;
+          const dr = r * (0.72 + Math.random() * 0.45);
+          pts.push({ x: Math.cos(a) * dr, y: Math.sin(a) * dr });
+        }
+        asteroids.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          speed: 0.6 + Math.random() * 1.6,
+          rot: Math.random() * Math.PI * 2,
+          vrot: (Math.random() - 0.5) * 0.025,
+          pts,
+          radius: r,
+          color: Math.random() > 0.5 ? '#1f2937' : '#374151'
+        });
+      }
+    }
+    initAsteroids();
+
+    // Sector 2: Neon City Skyline background entities
+    let neonBuildings = [];
+    function initNeonCity() {
+      neonBuildings = [];
+      let x = 0;
+      while (x < W + 120) {
+        const bw = 38 + Math.random() * 52;
+        const bh = 110 + Math.random() * 180;
+        const windows = [];
+        for (let wy = 18; wy < bh - 16; wy += 20) {
+          for (let wx = 8; wx < bw - 8; wx += 14) {
+            if (Math.random() > 0.4) {
+              const pal = ['#00f0ff', '#ff0055', '#ffe600', '#00ff66'];
+              windows.push({ x: wx, y: wy, color: pal[Math.floor(Math.random() * pal.length)] });
+            }
+          }
+        }
+        neonBuildings.push({
+          x: x,
+          y: H - bh,
+          w: bw,
+          h: bh,
+          windows,
+          beacon: Math.random() > 0.4
+        });
+        x += bw + 8;
+      }
+    }
+    initNeonCity();
+
+    // Sector 3: Hostile Fleet Core Boss Mothership
+    let boss = null;
+    function spawnBossMothership() {
+      boss = {
+        active: true,
+        phase: 1, // 1: Turrets Active, 2: Core Exposed, 3: Dying Cascade
+        x: W / 2,
+        y: -140,
+        targetY: 130,
+        w: 196,
+        h: 96,
+        vx: 1.4,
+        flash: 0,
+        // Destructible Wing Turrets (Phase 1)
+        leftTurret: {
+          xOff: -70,
+          yOff: 18,
+          w: 26,
+          h: 26,
+          hp: 40,
+          maxHp: 40,
+          flash: 0,
+          alive: true,
+          lastShot: 0
+        },
+        rightTurret: {
+          xOff: 70,
+          yOff: 18,
+          w: 26,
+          h: 26,
+          hp: 40,
+          maxHp: 40,
+          flash: 0,
+          alive: true,
+          lastShot: 0
+        },
+        // Exposed Core (Phase 2)
+        core: {
+          xOff: 0,
+          yOff: 12,
+          radius: 18,
+          hp: 100,
+          maxHp: 100,
+          flash: 0,
+          exposed: false,
+          lastShot: 0
+        },
+        deathTimer: 0
+      };
+      sectorBanner = {
+        text: 'WARNING: BOSS MOTHERSHIP',
+        sub: 'DESTROY THE ARMORED WING TURRETS!',
+        timer: 200
+      };
+      sfx.emp();
+      screenShake = 16;
+      screenFlash = 0.5;
+    }
+
     // Dense Multilayer Starfield
     for (let i = 0; i < 90; i++) {
       stars.push({
@@ -650,19 +793,63 @@
       hitFlash = 0;
       screenShake = 0;
       screenFlash = 0;
+      currentSectorIndex = 0;
+      sectorBanner = { text: 'SECTOR 1: ASTEROID BELT', sub: 'SURVIVE THE METEOR HAZARDS', timer: 160 };
+      boss = null;
+      initAsteroids();
+      initNeonCity();
       gameState = 'PLAYING';
       updateHUD();
     }
 
     function updateHUD() {
       document.getElementById('hudScore').textContent = score.toString().padStart(2, '0');
+      const secEl = document.getElementById('hudSector');
+      if (secEl) secEl.textContent = currentSectorIndex + 1;
       document.getElementById('hudHigh').textContent = Math.max(score, highScore);
       document.getElementById('hudLives').textContent = lives;
+    }
+
+    // Sector progression & Sector check
+    function checkSectorProgression() {
+      if (gameState !== 'PLAYING') return;
+      if (currentSectorIndex === 0 && score >= SECTOR_DEFS[1].scoreReq) {
+        currentSectorIndex = 1;
+        sectorBanner = { text: 'SECTOR 2: NEON CITY', sub: 'APPROACHING METROPOLIS SKIES', timer: 180 };
+        sfx.powerup();
+        screenFlash = 0.3;
+        updateHUD();
+      } else if (currentSectorIndex === 1 && score >= SECTOR_DEFS[2].scoreReq) {
+        currentSectorIndex = 2;
+        updateHUD();
+        if (!boss) spawnBossMothership();
+      }
     }
 
     // Enemy Spawner with formations
     function spawnEnemy() {
       if (gameState !== 'PLAYING') return;
+      checkSectorProgression();
+
+      // If boss is active, only spawn occasional light scout escort
+      if (boss && boss.active) {
+        if (Math.random() > 0.38) return;
+        enemies.push({
+          x: 40 + Math.random() * (W - 80),
+          y: -30,
+          type: 'swarmer',
+          w: 24,
+          h: 24,
+          hp: 1,
+          speed: 3.8,
+          vx: (Math.random() - 0.5) * 2,
+          phase: Math.random() * Math.PI * 2,
+          color: '#00f0ff',
+          lastShot: 0,
+          flash: 0
+        });
+        return;
+      }
 
       const roll = Math.random();
       let type = 'scout';
@@ -795,6 +982,35 @@
       }
       for (const el of enemyLasers) addSparks(el.x, el.y, '#00ffff', 4, 3);
       enemyLasers = [];
+      // EMP damages Boss components if present
+      if (boss && boss.active && boss.phase < 3) {
+        boss.flash = 6;
+        if (boss.leftTurret.alive) {
+          boss.leftTurret.hp = Math.max(0, boss.leftTurret.hp - 10);
+          boss.leftTurret.flash = 6;
+          addSparks(boss.x + boss.leftTurret.xOff, boss.y + boss.leftTurret.yOff, '#00ffff', 12, 4);
+          if (boss.leftTurret.hp <= 0) {
+            boss.leftTurret.alive = false;
+            sfx.explosion(true);
+            addFloatingText(boss.x + boss.leftTurret.xOff, boss.y, 'WING TURRET DOWN!', '#ff0055');
+          }
+        }
+        if (boss.rightTurret.alive) {
+          boss.rightTurret.hp = Math.max(0, boss.rightTurret.hp - 10);
+          boss.rightTurret.flash = 6;
+          addSparks(boss.x + boss.rightTurret.xOff, boss.y + boss.rightTurret.yOff, '#00ffff', 12, 4);
+          if (boss.rightTurret.hp <= 0) {
+            boss.rightTurret.alive = false;
+            sfx.explosion(true);
+            addFloatingText(boss.x + boss.rightTurret.xOff, boss.y, 'WING TURRET DOWN!', '#ff0055');
+          }
+        }
+        if (boss.phase === 2 && boss.core.exposed) {
+          boss.core.hp = Math.max(0, boss.core.hp - 12);
+          boss.core.flash = 6;
+          addSparks(boss.x + boss.core.xOff, boss.y + boss.core.yOff, '#00ffff', 16, 5);
+        }
+      }
       combo = Math.min(10, combo + 1);
       lastComboTime = performance.now();
       updateHUD();
@@ -1059,13 +1275,94 @@
       ctx.fillStyle = '#050508';
       ctx.fillRect(0, 0, W, H);
 
-      // Starfield
+      // Starfield (Speed conditioned on Sector)
+      const starSpeedMult = currentSectorIndex === 2 ? 2.2 : (currentSectorIndex === 1 ? 1.4 : 1.0);
       stars.forEach(s => {
-        s.y += s.speed;
+        s.y += s.speed * starSpeedMult;
         if (s.y > H) s.y = 0;
-        ctx.fillStyle = s.color;
+        ctx.fillStyle = currentSectorIndex === 2 ? '#ff0055' : s.color;
         ctx.fillRect(s.x, s.y, s.size, s.size);
       });
+
+      // SECTOR BACKGROUND RENDERING
+      if (currentSectorIndex === 0) {
+        // Sector 1: Asteroid Belt (Drifting jagged rock hazards in space)
+        asteroids.forEach(ast => {
+          ast.y += ast.speed;
+          ast.rot += ast.vrot;
+          if (ast.y > H + 50) {
+            ast.y = -50;
+            ast.x = Math.random() * W;
+          }
+          ctx.save();
+          ctx.translate(ast.x, ast.y);
+          ctx.rotate(ast.rot);
+          ctx.fillStyle = ast.color;
+          ctx.strokeStyle = '#4b5563';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ast.pts.forEach((pt, idx) => {
+            if (idx === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+          });
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          // Crater detail
+          ctx.fillStyle = '#111827';
+          ctx.beginPath();
+          ctx.arc(ast.radius * 0.25, -ast.radius * 0.2, ast.radius * 0.22, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      } else if (currentSectorIndex === 1) {
+        // Sector 2: Neon City (Cyberpunk skyscraper silhouettes with glowing neon windows)
+        neonBuildings.forEach(b => {
+          b.y += 0.45;
+          if (b.y > H) b.y = H - b.h;
+          ctx.fillStyle = '#090d16';
+          ctx.strokeStyle = '#1e293b';
+          ctx.lineWidth = 1;
+          ctx.fillRect(b.x, b.y, b.w, b.h);
+          ctx.strokeRect(b.x, b.y, b.w, b.h);
+          // Windows
+          b.windows.forEach(w => {
+            ctx.fillStyle = w.color;
+            ctx.shadowColor = w.color;
+            ctx.shadowBlur = 4;
+            ctx.fillRect(b.x + w.x, b.y + w.y, 6, 8);
+          });
+          ctx.shadowBlur = 0;
+          // Rooftop beacon
+          if (b.beacon && Math.floor(now / 400) % 2 === 0) {
+            ctx.fillStyle = '#ff0055';
+            ctx.shadowColor = '#ff0055';
+            ctx.shadowBlur = 8;
+            ctx.fillRect(b.x + b.w / 2 - 2, b.y - 8, 4, 8);
+            ctx.shadowBlur = 0;
+          }
+        });
+        // Perspective Neon Horizon Grid
+        ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
+        ctx.lineWidth = 1;
+        for (let gy = H - 120; gy < H; gy += 24) {
+          ctx.beginPath();
+          ctx.moveTo(0, gy);
+          ctx.lineTo(W, gy);
+          ctx.stroke();
+        }
+      } else if (currentSectorIndex === 2) {
+        // Sector 3: Fleet Core Warp Streaks
+        ctx.strokeStyle = 'rgba(255, 0, 85, 0.18)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 6; i++) {
+          const rx = (i * 105 + (now * 0.2)) % W;
+          ctx.beginPath();
+          ctx.moveTo(rx, 0);
+          ctx.lineTo(rx, H);
+          ctx.stroke();
+        }
+      }
 
       if (gameState === 'PLAYING') {
         // 2. 360° Omnidirectional Movement
@@ -1198,8 +1495,48 @@
           ctx.fillRect(-2, 6, 4, 5);
           ctx.restore();
           ctx.shadowBlur = 0;
-          // collide with enemies
+          // collide with Boss if active
           let hitSomething = false;
+          if (boss && boss.active && boss.phase < 3 && Math.abs(m.x - boss.x) < boss.w / 2 && Math.abs(m.y - boss.y) < boss.h / 2 + 10) {
+            hitSomething = true;
+            hitFlash = 0.16;
+            sfx.hit();
+            addSparks(m.x, m.y, '#ffaa00', 14, 5);
+            // Damage active parts
+            if (boss.phase === 1) {
+              if (m.x < boss.x && boss.leftTurret.alive) {
+                boss.leftTurret.hp -= 4;
+                boss.leftTurret.flash = 6;
+                if (boss.leftTurret.hp <= 0) {
+                  boss.leftTurret.alive = false;
+                  sfx.explosion(true);
+                  screenShake = 12;
+                  addFloatingText(boss.x + boss.leftTurret.xOff, boss.y, 'WING TURRET DESTROYED! +1500', '#ff0055');
+                  score += 1500 * combo;
+                }
+              } else if (boss.rightTurret.alive) {
+                boss.rightTurret.hp -= 4;
+                boss.rightTurret.flash = 6;
+                if (boss.rightTurret.hp <= 0) {
+                  boss.rightTurret.alive = false;
+                  sfx.explosion(true);
+                  screenShake = 12;
+                  addFloatingText(boss.x + boss.rightTurret.xOff, boss.y, 'WING TURRET DESTROYED! +1500', '#ff0055');
+                  score += 1500 * combo;
+                }
+              }
+            } else if (boss.phase === 2 && boss.core.exposed) {
+              boss.core.hp -= 4;
+              boss.core.flash = 6;
+              if (boss.core.hp <= 0) {
+                boss.phase = 3;
+                boss.deathTimer = 180;
+                sfx.explosion(true);
+              }
+            }
+          }
+
+          // collide with enemies
           for (let k = enemies.length - 1; k >= 0; k--) {
             const e = enemies[k];
             if (Math.abs(m.x - e.x) < e.w / 2 + 6 && Math.abs(m.y - e.y) < e.h / 2 + 6) {
@@ -1237,6 +1574,327 @@
             damagePlayer(now);
           } else if (el.y > H + 20 || el.x < -20 || el.x > W + 20) {
             enemyLasers.splice(i, 1);
+          }
+        }
+
+        // 5b. Update & Render Boss Mothership
+        if (boss && boss.active) {
+          // Entry interpolation
+          if (boss.y < boss.targetY) {
+            boss.y += 1.8;
+          } else if (boss.phase < 3) {
+            // Hover horizontal patrol
+            boss.x += boss.vx;
+            if (boss.x > W - 110 || boss.x < 110) {
+              boss.vx *= -1;
+            }
+          }
+
+          // PHASE 1: Wing Turrets active
+          if (boss.phase === 1) {
+            // Check if both turrets are destroyed
+            if (!boss.leftTurret.alive && !boss.rightTurret.alive) {
+              boss.phase = 2;
+              boss.core.exposed = true;
+              sfx.emp();
+              screenShake = 18;
+              screenFlash = 0.6;
+              sectorBanner = {
+                text: 'CORE EXPOSED!',
+                sub: 'DESTROY THE PULSATING REACTOR!',
+                timer: 180
+              };
+              addFloatingText(boss.x, boss.y + 40, 'REACTOR EXPOSED!', '#00f0ff');
+            } else {
+              // Turret attacks
+              if (boss.leftTurret.alive && now - boss.leftTurret.lastShot > 1100 && boss.y >= boss.targetY - 10) {
+                boss.leftTurret.lastShot = now;
+                sfx.enemyLaser();
+                const tx = boss.x + boss.leftTurret.xOff;
+                const ty = boss.y + boss.leftTurret.yOff + 10;
+                const a = Math.atan2(player.y - ty, player.x - tx);
+                enemyLasers.push({ x: tx, y: ty, vx: Math.cos(a) * 5.2, vy: Math.sin(a) * 5.2 });
+              }
+              if (boss.rightTurret.alive && now - boss.rightTurret.lastShot > 1100 && boss.y >= boss.targetY - 10) {
+                boss.rightTurret.lastShot = now;
+                sfx.enemyLaser();
+                const tx = boss.x + boss.rightTurret.xOff;
+                const ty = boss.y + boss.rightTurret.yOff + 10;
+                const a = Math.atan2(player.y - ty, player.x - tx);
+                enemyLasers.push({ x: tx, y: ty, vx: Math.cos(a) * 5.2, vy: Math.sin(a) * 5.2 });
+              }
+            }
+          } else if (boss.phase === 2) {
+            // PHASE 2: Core Exposed — Dual attack pattern: Zap beam salvo + Radial barrage
+            if (now - boss.core.lastShot > 1300 && boss.y >= boss.targetY - 10) {
+              boss.core.lastShot = now;
+              const isZap = Math.random() > 0.45;
+              if (isZap) {
+                sfx.zap(1.2);
+                screenShake = 6;
+                // High-velocity targeted zap bolts
+                const cx = boss.x + boss.core.xOff;
+                const cy = boss.y + boss.core.yOff + 16;
+                [-0.2, 0, 0.2].forEach(offAngle => {
+                  const a = Math.atan2(player.y - cy, player.x - cx) + offAngle;
+                  enemyLasers.push({ x: cx, y: cy, vx: Math.cos(a) * 6.5, vy: Math.sin(a) * 6.5 });
+                });
+              } else {
+                sfx.enemyLaser();
+                // 5-way radial burst
+                const cx = boss.x + boss.core.xOff;
+                const cy = boss.y + boss.core.yOff + 16;
+                [-0.5, -0.25, 0, 0.25, 0.5].forEach(ang => {
+                  enemyLasers.push({ x: cx, y: cy, vx: Math.sin(ang) * 5, vy: Math.cos(ang) * 5 });
+                });
+              }
+            }
+          } else if (boss.phase === 3) {
+            // PHASE 3: Dying Cascade
+            boss.deathTimer--;
+            if (boss.deathTimer % 12 === 0) {
+              sfx.explosion(true);
+              screenShake = 16;
+              hitFlash = 0.3;
+              const ex = boss.x + (Math.random() - 0.5) * boss.w;
+              const ey = boss.y + (Math.random() - 0.5) * boss.h;
+              addSparks(ex, ey, Math.random() > 0.5 ? '#ff0055' : '#00f0ff', 24, 7);
+            }
+            if (boss.deathTimer <= 0) {
+              // Boss Defeated!
+              sfx.explosion(true);
+              screenShake = 24;
+              screenFlash = 0.8;
+              addSparks(boss.x, boss.y, '#ffe600', 60, 9);
+              addSparks(boss.x, boss.y, '#00ffff', 40, 8);
+              const bossPts = 12000 * combo;
+              score += bossPts;
+              addFloatingText(boss.x, boss.y, `+${bossPts} MOTHERSHIP DOWN!`, '#ffe600');
+              // Powerup shower
+              for (const k of ['overdrive', 'shield', 'emp', 'spread', 'homing']) {
+                powerups.push({ x: boss.x + (Math.random() - 0.5) * 80, y: boss.y + Math.random() * 20, vy: 2.0, kind: k });
+              }
+              for (let g = 0; g < 8; g++) {
+                gems.push({ x: boss.x + (Math.random() - 0.5) * 100, y: boss.y + Math.random() * 30, vy: 2.2 });
+              }
+              boss.active = false;
+              boss = null;
+              sectorBanner = {
+                text: 'SECTOR CLEARED!',
+                sub: 'FLEET CORE DESTROYED — HYPERDRIVE ENGAGED',
+                timer: 240
+              };
+              updateHUD();
+            }
+          }
+
+          // Check Player Lasers colliding with Boss parts
+          if (boss && boss.active && boss.phase < 3) {
+            for (let j = lasers.length - 1; j >= 0; j--) {
+              const l = lasers[j];
+              let hitPart = false;
+
+              // Check left wing turret
+              if (boss.leftTurret.alive) {
+                const tx = boss.x + boss.leftTurret.xOff;
+                const ty = boss.y + boss.leftTurret.yOff;
+                if (Math.abs(l.x - tx) < 18 && Math.abs(l.y - ty) < 18) {
+                  lasers.splice(j, 1);
+                  hitPart = true;
+                  boss.leftTurret.hp--;
+                  boss.leftTurret.flash = 4;
+                  hitFlash = 0.12;
+                  sfx.hit();
+                  addSparks(l.x, l.y, '#ff0055', 6, 3);
+                  if (boss.leftTurret.hp <= 0) {
+                    boss.leftTurret.alive = false;
+                    sfx.explosion(true);
+                    screenShake = 12;
+                    addFloatingText(tx, ty, 'WING TURRET DOWN! +1500', '#ff0055');
+                    score += 1500 * combo;
+                    addSparks(tx, ty, '#ff0055', 25, 6);
+                  }
+                  continue;
+                }
+              }
+
+              // Check right wing turret
+              if (boss.rightTurret.alive) {
+                const tx = boss.x + boss.rightTurret.xOff;
+                const ty = boss.y + boss.rightTurret.yOff;
+                if (Math.abs(l.x - tx) < 18 && Math.abs(l.y - ty) < 18) {
+                  lasers.splice(j, 1);
+                  hitPart = true;
+                  boss.rightTurret.hp--;
+                  boss.rightTurret.flash = 4;
+                  hitFlash = 0.12;
+                  sfx.hit();
+                  addSparks(l.x, l.y, '#ff0055', 6, 3);
+                  if (boss.rightTurret.hp <= 0) {
+                    boss.rightTurret.alive = false;
+                    sfx.explosion(true);
+                    screenShake = 12;
+                    addFloatingText(tx, ty, 'WING TURRET DOWN! +1500', '#ff0055');
+                    score += 1500 * combo;
+                    addSparks(tx, ty, '#ff0055', 25, 6);
+                  }
+                  continue;
+                }
+              }
+
+              // Check exposed core (Phase 2)
+              if (boss.phase === 2 && boss.core.exposed) {
+                const cx = boss.x + boss.core.xOff;
+                const cy = boss.y + boss.core.yOff;
+                if (Math.abs(l.x - cx) < boss.core.radius + 6 && Math.abs(l.y - cy) < boss.core.radius + 6) {
+                  lasers.splice(j, 1);
+                  hitPart = true;
+                  boss.core.hp--;
+                  boss.core.flash = 4;
+                  hitFlash = 0.15;
+                  sfx.hit();
+                  addSparks(l.x, l.y, '#00ffff', 8, 4);
+                  if (boss.core.hp <= 0) {
+                    boss.phase = 3;
+                    boss.deathTimer = 180;
+                    sfx.explosion(true);
+                    screenShake = 18;
+                    screenFlash = 0.5;
+                  }
+                  continue;
+                }
+              }
+
+              // Hull deflection if turrets are still alive
+              if (!hitPart && Math.abs(l.x - boss.x) < boss.w / 2 && Math.abs(l.y - boss.y) < boss.h / 2) {
+                lasers.splice(j, 1);
+                addSparks(l.x, l.y, '#94a3b8', 4, 2);
+                sfx.hit();
+                if (Math.random() > 0.7) {
+                  addFloatingText(l.x, l.y - 12, 'DEFLECTED!', '#94a3b8');
+                }
+              }
+            }
+          }
+
+          // RENDER BOSS MOTHERSHIP
+          if (boss) {
+            ctx.save();
+            ctx.translate(boss.x, boss.y);
+
+            // Heavy Dreadnought Hull
+            ctx.fillStyle = boss.flash > 0 ? '#ffffff' : '#0f172a';
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, 48);
+            ctx.lineTo(-boss.w / 2, 0);
+            ctx.lineTo(-boss.w / 2 + 25, -42);
+            ctx.lineTo(boss.w / 2 - 25, -42);
+            ctx.lineTo(boss.w / 2, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Wing Panels
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(-boss.w / 2 + 10, -18, 45, 28);
+            ctx.fillRect(boss.w / 2 - 55, -18, 45, 28);
+
+            // Left Wing Turret
+            const lt = boss.leftTurret;
+            if (lt.alive) {
+              ctx.fillStyle = lt.flash > 0 ? '#ffffff' : '#ff0055';
+              ctx.shadowColor = '#ff0055';
+              ctx.shadowBlur = 10;
+              ctx.fillRect(lt.xOff - 12, lt.yOff - 12, 24, 24);
+              ctx.fillStyle = '#111';
+              ctx.fillRect(lt.xOff - 4, lt.yOff + 10, 8, 12);
+              ctx.shadowBlur = 0;
+            } else {
+              // Ruined socket with spark smoke
+              ctx.fillStyle = '#111827';
+              ctx.fillRect(lt.xOff - 12, lt.yOff - 12, 24, 24);
+            }
+
+            // Right Wing Turret
+            const rt = boss.rightTurret;
+            if (rt.alive) {
+              ctx.fillStyle = rt.flash > 0 ? '#ffffff' : '#ff0055';
+              ctx.shadowColor = '#ff0055';
+              ctx.shadowBlur = 10;
+              ctx.fillRect(rt.xOff - 12, rt.yOff - 12, 24, 24);
+              ctx.fillStyle = '#111';
+              ctx.fillRect(rt.xOff - 4, rt.yOff + 10, 8, 12);
+              ctx.shadowBlur = 0;
+            } else {
+              // Ruined socket
+              ctx.fillStyle = '#111827';
+              ctx.fillRect(rt.xOff - 12, rt.yOff - 12, 24, 24);
+            }
+
+            // Reactor Core
+            if (boss.phase >= 2) {
+              // Exposed Reactor Pulsing
+              const pulse = 18 + Math.sin(now / 90) * 4;
+              ctx.fillStyle = boss.core.flash > 0 ? '#ffffff' : '#00f0ff';
+              ctx.shadowColor = '#00f0ff';
+              ctx.shadowBlur = 20;
+              ctx.beginPath();
+              ctx.arc(boss.core.xOff, boss.core.yOff, pulse, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.strokeStyle = '#ff0055';
+              ctx.lineWidth = 3;
+              ctx.stroke();
+              ctx.shadowBlur = 0;
+            } else {
+              // Armored Reactor Cover Plate
+              ctx.fillStyle = '#475569';
+              ctx.fillRect(-22, -8, 44, 32);
+              ctx.strokeStyle = '#e2e8f0';
+              ctx.strokeRect(-22, -8, 44, 32);
+              ctx.fillStyle = '#ff0055';
+              ctx.font = '8px monospace';
+              ctx.textAlign = 'center';
+              ctx.fillText('LOCKED', 0, 12);
+            }
+
+            ctx.restore();
+
+            // BOSS HEALTH & PHASE HUD OVERLAY
+            if (boss.phase < 3) {
+              const barW = 280;
+              const barH = 10;
+              const barX = (W - barW) / 2;
+              const barY = 48;
+              ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+              ctx.strokeStyle = '#ff0055';
+              ctx.lineWidth = 2;
+              ctx.fillRect(barX, barY, barW, barH);
+              ctx.strokeRect(barX, barY, barW, barH);
+
+              let hpRatio = 1.0;
+              let label = 'PHASE 1: DESTROY WING TURRETS';
+              if (boss.phase === 1) {
+                const totalHp = boss.leftTurret.hp + boss.rightTurret.hp;
+                const maxHp = boss.leftTurret.maxHp + boss.rightTurret.maxHp;
+                hpRatio = Math.max(0, totalHp / maxHp);
+              } else if (boss.phase === 2) {
+                label = 'PHASE 2: DESTROY REACTOR CORE';
+                hpRatio = Math.max(0, boss.core.hp / boss.core.maxHp);
+              }
+
+              ctx.fillStyle = boss.phase === 1 ? '#ff0055' : '#00f0ff';
+              ctx.shadowColor = boss.phase === 1 ? '#ff0055' : '#00f0ff';
+              ctx.shadowBlur = 6;
+              ctx.fillRect(barX + 2, barY + 2, (barW - 4) * hpRatio, barH - 4);
+              ctx.shadowBlur = 0;
+
+              ctx.font = '8px "Press Start 2P", monospace';
+              ctx.fillStyle = '#ffffff';
+              ctx.textAlign = 'center';
+              ctx.fillText(label, W / 2, barY - 6);
+            }
           }
         }
 
@@ -1392,6 +2050,34 @@
         ctx.fillText(wtag, player.x - 34, player.y + 52);
         ctx.globalAlpha = 1.0;
         ctx.globalAlpha = 1.0;
+      }
+
+      // SECTOR & STAGE BANNER NOTIFICATIONS
+      if (sectorBanner && sectorBanner.timer > 0) {
+        sectorBanner.timer--;
+        const alpha = Math.min(1.0, sectorBanner.timer / 30);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(0, H / 2 - 50, W, 80);
+        ctx.strokeStyle = 'var(--neon-cyan)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, H / 2 - 50, W, 80);
+
+        ctx.font = '14px "Press Start 2P", monospace';
+        ctx.fillStyle = '#00f0ff';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 12;
+        ctx.fillText(sectorBanner.text, W / 2, H / 2 - 14);
+
+        ctx.font = '10px "VT323", monospace';
+        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.fillStyle = '#ffe600';
+        ctx.shadowColor = '#ffe600';
+        ctx.shadowBlur = 8;
+        ctx.fillText(sectorBanner.sub, W / 2, H / 2 + 16);
+        ctx.restore();
       }
 
       // 9. Floating Text & Particles
