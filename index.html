@@ -258,6 +258,285 @@
       transform: translateY(4px);
       box-shadow: 0 2px 0 #660022, 0 0 25px rgba(255, 0, 85, 0.9);
     }
+  
+    /* Week 5: Hangar & Pilot Meta-Progression */
+    .hud-scrap { color: var(--neon-yellow); }
+
+    .hangar-container {
+      width: 100%;
+      max-width: 530px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      overflow-y: auto;
+      max-height: 94%;
+      padding: 6px 4px;
+    }
+
+    .hangar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      border-bottom: 2px dashed #334155;
+      padding-bottom: 8px;
+    }
+
+    .hangar-title {
+      font-size: 1.1rem;
+      color: #fff;
+      text-shadow: 2px 2px 0 var(--neon-pink), -2px -2px 0 var(--neon-cyan);
+      letter-spacing: 2px;
+    }
+
+    .scrap-display-pill {
+      background: rgba(15, 23, 42, 0.9);
+      border: 2px solid var(--neon-yellow);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.65rem;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 12px rgba(255, 230, 0, 0.25);
+    }
+
+    .scrap-display-pill .scrap-icon {
+      color: var(--neon-yellow);
+      font-size: 0.8rem;
+    }
+
+    .ships-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      width: 100%;
+      margin: 4px 0;
+    }
+
+    .ship-card {
+      background: rgba(10, 14, 26, 0.92);
+      border: 2px solid #334155;
+      border-radius: 8px;
+      padding: 10px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .ship-card:hover {
+      border-color: #64748b;
+      transform: translateY(-2px);
+    }
+
+    .ship-card.active {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.45), inset 0 0 10px rgba(0, 240, 255, 0.15);
+      background: rgba(8, 25, 45, 0.95);
+    }
+
+    .ship-card.active::after {
+      content: 'SELECT';
+      position: absolute;
+      top: -8px;
+      right: 6px;
+      background: var(--neon-cyan);
+      color: #000;
+      font-size: 0.45rem;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+
+    .ship-preview-wrap {
+      width: 80px;
+      height: 80px;
+      background: radial-gradient(circle, rgba(20, 30, 50, 0.8) 0%, rgba(5, 5, 8, 0.95) 100%);
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: 2px;
+    }
+
+    .ship-card-name {
+      font-size: 0.62rem;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+
+    .ship-card-palette-tag {
+      font-size: 0.46rem;
+      padding: 2px 5px;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+
+    .ship-card-status-badge {
+      font-size: 0.48rem;
+      padding: 3px 6px;
+      border-radius: 4px;
+      margin-top: 2px;
+      font-family: 'Press Start 2P', monospace;
+    }
+
+    .status-equipped {
+      background: var(--neon-green);
+      color: #000;
+      box-shadow: 0 0 8px rgba(0, 255, 102, 0.5);
+    }
+
+    .status-unlocked {
+      background: #1e293b;
+      color: var(--neon-cyan);
+      border: 1px solid var(--neon-cyan);
+    }
+
+    .status-locked {
+      background: #33151f;
+      color: var(--neon-pink);
+      border: 1px solid var(--neon-pink);
+    }
+
+    .ship-detail-panel {
+      width: 100%;
+      background: rgba(12, 16, 28, 0.95);
+      border: 2px solid #2d3748;
+      border-radius: 8px;
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 0.55rem;
+      line-height: 1.8;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .ship-detail-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 4px;
+    }
+
+    .ship-stats-table {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.52rem;
+    }
+
+    .stat-label {
+      color: #94a3b8;
+      width: 80px;
+    }
+
+    .stat-bar-container {
+      flex: 1;
+      height: 7px;
+      background: #1e293b;
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 0 8px;
+      position: relative;
+    }
+
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.25s ease;
+    }
+
+    .stat-val-text {
+      width: 60px;
+      text-align: right;
+      color: #fff;
+    }
+
+    .ship-desc-text {
+      color: #cbd5e1;
+      font-family: 'VT323', monospace;
+      font-size: 0.95rem;
+      line-height: 1.35;
+      margin-top: 2px;
+    }
+
+    .hangar-actions-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      justify-content: center;
+      margin-top: 4px;
+    }
+
+    .hangar-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.65rem;
+      padding: 12px 18px;
+      border: 2px solid #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      text-transform: uppercase;
+      box-shadow: 3px 3px 0 #000;
+    }
+
+    .hangar-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 #000;
+    }
+
+    .btn-launch {
+      background: var(--neon-green);
+      color: #000;
+      border-color: #fff;
+      box-shadow: 0 0 16px rgba(0, 255, 102, 0.6), 3px 3px 0 #000;
+    }
+
+    .btn-buy {
+      background: var(--neon-yellow);
+      color: #000;
+      border-color: #fff;
+      box-shadow: 0 0 16px rgba(255, 230, 0, 0.6), 3px 3px 0 #000;
+    }
+
+    .btn-select {
+      background: var(--neon-cyan);
+      color: #000;
+      border-color: #fff;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.6), 3px 3px 0 #000;
+    }
+
+    .btn-back {
+      background: #1e293b;
+      color: #94a3b8;
+      border-color: #475569;
+    }
+
+    .hangar-kbd-nav-tip {
+      font-size: 0.46rem;
+      color: #64748b;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
   </style>
 </head>
 <body>
@@ -271,6 +550,7 @@
       <div class="hud-title" style="color: var(--neon-green);">SEC <span id="hudSector" style="color: #fff;">1</span></div>
       <div class="hud-high">HI <span id="hudHigh" style="color: #fff;">25000</span></div>
       <div class="hud-lives">SHIPS <span id="hudLives" style="color: #fff;">3</span></div>
+      <div class="hud-scrap">⚙ <span id="hudScrap" style="color: #fff;">0</span></div>
     </div>
 
     <canvas id="gameCanvas" width="600" height="760"></canvas>
@@ -287,10 +567,13 @@
         3. SAM - 12,850 PTS
       </div>
 
-      <button class="press-start-btn" onclick="startGame()">INSERT COIN / START</button>
+      <div style="display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; justify-content: center;">
+        <button class="press-start-btn" style="margin-top: 0;" onclick="startGame()">INSERT COIN / START</button>
+        <button class="press-start-btn" style="margin-top: 0; background: var(--neon-cyan); color: #000; box-shadow: 0 0 20px rgba(0, 240, 255, 0.7), 4px 4px 0 #000;" onclick="openHangar()">HANGAR ⚙</button>
+      </div>
 
       <div class="arcade-controls-guide">
-        KEYS: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or Arrows (360° Flight) · <kbd>SPACE</kbd> Fire<br>
+        KEYS: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or Arrows (360° Flight) · <kbd>SPACE</kbd> Fire · <kbd>H</kbd> Hangar<br>
         MOBILE: Touch & drag anywhere to steer or use virtual stick.
       </div>
     </div>
@@ -300,11 +583,49 @@
       <div style="font-size: 2rem; color: var(--neon-pink); margin-bottom: 12px; text-shadow: 0 0 12px var(--neon-pink);">GAME OVER</div>
       <div class="subtitle-flavor" id="gameOverTaunt">YOU RAN OUT OF CREDITS</div>
 
-      <div style="font-size: 0.8rem; margin: 20px 0; color: #fff;">
+      <div style="font-size: 0.8rem; margin: 16px 0 8px 0; color: #fff;">
         FINAL SCORE: <span id="finalScore" style="color: var(--neon-cyan);">0</span>
       </div>
 
-      <button class="press-start-btn" onclick="restartGame()">CONTINUE (9)</button>
+      <div style="background: rgba(15, 23, 42, 0.85); border: 2px dashed #475569; border-radius: 6px; padding: 10px 16px; margin-bottom: 16px; font-size: 0.6rem; line-height: 1.8;">
+        ⚙ RUN SALVAGE: <span id="gameOverRunScrap" style="color: var(--neon-yellow);">+0</span> SCRAP<br>
+        💼 TOTAL VAULT: <span id="gameOverTotalScrap" style="color: var(--neon-yellow);">0</span> SCRAP
+      </div>
+
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+        <button class="press-start-btn" style="margin-top: 0;" onclick="restartGame()">RETRY (9)</button>
+        <button class="press-start-btn" style="margin-top: 0; background: var(--neon-cyan); color: #000; box-shadow: 0 0 20px rgba(0, 240, 255, 0.7), 4px 4px 0 #000;" onclick="openHangar()">HANGAR ⚙</button>
+      </div>
+    </div>
+
+    
+    <!-- Retro Week 5 Hangar Screen -->
+    <div id="hangarScreen" class="screen" style="display: none;">
+      <div class="hangar-container">
+        <div class="hangar-header">
+          <div class="hangar-title">★ PILOT HANGAR ★</div>
+          <div class="scrap-display-pill">
+            <span class="scrap-icon">⚙</span>
+            <span id="hangarScrapCount">0</span> SCRAP
+          </div>
+        </div>
+
+        <div class="ships-grid" id="hangarShipsGrid">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <div class="ship-detail-panel" id="shipDetailPanel">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <div class="hangar-actions-row" id="hangarActionButtons">
+          <!-- Primary action (LAUNCH / EQUIP / BUY) + BACK -->
+        </div>
+
+        <div class="hangar-kbd-nav-tip">
+          [◀/▶] SELECT SHIP · [ENTER] ACTION / LAUNCH · [ESC] TITLE
+        </div>
+      </div>
     </div>
 
     <!-- Mobile Virtual Controls -->
@@ -557,6 +878,52 @@
         osc.start(t);
         osc.stop(t + 0.15);
       },
+      select() {
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(440, t);
+        osc.frequency.setValueAtTime(660, t + 0.04);
+        gain.gain.setValueAtTime(0.14, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start(t);
+        osc.stop(t + 0.1);
+      },
+      buy() {
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        [523.25, 659.25, 783.99, 1046.50].forEach((f, idx) => {
+          const osc = ac.createOscillator();
+          const gain = ac.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, t + idx * 0.06);
+          gain.gain.setValueAtTime(0.2, t + idx * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.06 + 0.18);
+          osc.connect(gain);
+          gain.connect(ac.destination);
+          osc.start(t + idx * 0.06);
+          osc.stop(t + idx * 0.06 + 0.18);
+        });
+      },
+      deny() {
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, t);
+        osc.frequency.setValueAtTime(110, t + 0.07);
+        gain.gain.setValueAtTime(0.22, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start(t);
+        osc.stop(t + 0.16);
+      },
       thruster() {
         const ac = getAudioCtx();
         const t = ac.currentTime;
@@ -731,6 +1098,166 @@
     /* ==========================================================================
        GAME ENGINE & ARCADE FEEL
        ========================================================================== */
+    
+    /* ==========================================================================
+       WEEK 5: THE HANGAR & PILOT META-PROGRESSION ENGINE
+       Scrap economy, 3 distinct pilot ships, retro palettes, localStorage meta
+       ========================================================================== */
+    const META_STORAGE_KEY = 'cyberraid_meta_v1';
+
+    const SHIP_CONFIGS = {
+      viper: {
+        id: 'viper',
+        name: 'VIPER',
+        subtitle: 'TACTICAL FIGHTER',
+        price: 0,
+        speed: 6.2,
+        maxHp: 3,
+        weaponMode: 'vulcan',
+        vulcanLevel: 1,
+        fireRate: 140,
+        homingCooldownRate: 1.0,
+        shieldDurationMult: 1.0,
+        scrapDropMult: 1.0,
+        initialShield: 0,
+        palette: {
+          name: 'NEON CYAN',
+          primary: '#00f0ff',
+          secondary: '#0284c7',
+          accent: '#38bdf8',
+          shadow: '#034066',
+          cockpit: '#facc15',
+          thrusterOuter: '#ff5500',
+          thrusterInner: '#00f0ff',
+          laser: '#00f0ff',
+          glow: '#00f0ff'
+        },
+        stats: {
+          speedPercent: 70,
+          hpPercent: 60,
+          firepowerPercent: 65,
+          defensePercent: 50
+        },
+        desc: 'Balanced tactical space superiority fighter. Free baseline model with agile 360° flight, standard vulcan, and balanced hull armor.'
+      },
+      interceptor: {
+        id: 'interceptor',
+        name: 'INTERCEPTOR',
+        subtitle: 'STEALTH PLASMA DIVER',
+        price: 500,
+        speed: 7.8,
+        maxHp: 2,
+        weaponMode: 'spread',
+        vulcanLevel: 1,
+        fireRate: 110,
+        homingCooldownRate: 0.65,
+        shieldDurationMult: 0.85,
+        scrapDropMult: 1.1,
+        initialShield: 0,
+        palette: {
+          name: 'VAPOR MAGENTA',
+          primary: '#ff00aa',
+          secondary: '#c026d3',
+          accent: '#f472b6',
+          shadow: '#701a75',
+          cockpit: '#00f0ff',
+          thrusterOuter: '#7928ca',
+          thrusterInner: '#ff00aa',
+          laser: '#ff00aa',
+          glow: '#ff00aa'
+        },
+        stats: {
+          speedPercent: 98,
+          hpPercent: 40,
+          firepowerPercent: 90,
+          defensePercent: 35
+        },
+        desc: 'High-speed glass cannon built for aggressive aces. Starts equipped with Plasma Spread, rapid 110ms refire, and swift homing missile lock-on.'
+      },
+      dreadnought: {
+        id: 'dreadnought',
+        name: 'DREADNOUGHT',
+        subtitle: 'ARMORED SIEGE CARRIER',
+        price: 1200,
+        speed: 4.8,
+        maxHp: 5,
+        weaponMode: 'vulcan',
+        vulcanLevel: 2,
+        fireRate: 140,
+        homingCooldownRate: 1.15,
+        shieldDurationMult: 1.6,
+        scrapDropMult: 1.5,
+        initialShield: 60 * 12,
+        palette: {
+          name: 'SOLAR AMBER',
+          primary: '#ffaa00',
+          secondary: '#d97706',
+          accent: '#fde047',
+          shadow: '#78350f',
+          cockpit: '#00ff66',
+          thrusterOuter: '#b45309',
+          thrusterInner: '#ffdd00',
+          laser: '#ffaa00',
+          glow: '#ffaa00'
+        },
+        stats: {
+          speedPercent: 45,
+          hpPercent: 100,
+          firepowerPercent: 80,
+          defensePercent: 95
+        },
+        desc: 'Heavily armored juggernaut. 5 HP hull, starts with Twin Vulcan + deployable shield barrier, +60% shield duration, and +50% scrap salvage.'
+      }
+    };
+
+    let metaState = {
+      scrap: 0,
+      unlockedShips: ['viper'],
+      selectedShip: 'viper'
+    };
+
+    function loadMetaState() {
+      try {
+        const raw = localStorage.getItem(META_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            metaState.scrap = (typeof parsed.scrap === 'number' && parsed.scrap >= 0) ? Math.floor(parsed.scrap) : 0;
+            if (Array.isArray(parsed.unlockedShips)) {
+              metaState.unlockedShips = parsed.unlockedShips.filter(id => SHIP_CONFIGS[id]);
+            }
+            if (!metaState.unlockedShips.includes('viper')) {
+              metaState.unlockedShips.unshift('viper');
+            }
+            if (typeof parsed.selectedShip === 'string' && SHIP_CONFIGS[parsed.selectedShip] && metaState.unlockedShips.includes(parsed.selectedShip)) {
+              metaState.selectedShip = parsed.selectedShip;
+            } else {
+              metaState.selectedShip = 'viper';
+            }
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Corrupt meta-progression data detected. Resetting to defaults.', err);
+      }
+      metaState = { scrap: 0, unlockedShips: ['viper'], selectedShip: 'viper' };
+      saveMetaState();
+    }
+
+    function saveMetaState() {
+      try {
+        localStorage.setItem(META_STORAGE_KEY, JSON.stringify(metaState));
+      } catch (err) {
+        console.warn('Failed to save meta-progression to localStorage:', err);
+      }
+    }
+
+    loadMetaState();
+
+    let sessionRunScrap = 0;
+    let scraps = []; // { x, y, vy, value, size, rot, vrot }
+    let hangarActiveShipId = metaState.selectedShip || 'viper';
+
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const W = canvas.width;
@@ -745,16 +1272,22 @@
     let screenFlash = 0;
     let lastComboTime = 0;
 
-    // Player Plane (Authentic Retro Viper Jet) — Week2 Arsenal State
+    // Player Plane — Week 5 Multi-Pilot State
     const player = {
+      shipId: 'viper',
       x: W / 2,
       y: H - 130,
       vx: 0,
       vy: 0,
       speed: 6.2,
+      hp: 3,
+      maxHp: 3,
       tilt: 0,
       lastShot: 0,
       fireRate: 140,
+      homingCooldownRate: 1.0,
+      shieldDurationMult: 1.0,
+      scrapDropMult: 1.0,
       invulnerable: 0,
       vulcanLevel: 1, // 1=Single, 2=Twin, 3=Quad
       weaponMode: 'vulcan', // vulcan | spread | homing
@@ -922,8 +1455,53 @@
     const keys = {};
     window.addEventListener('keydown', e => {
       keys[e.code] = true;
-      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code) && gameState === 'PLAYING') {
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'].includes(e.code) && gameState === 'PLAYING') {
         e.preventDefault();
+      }
+
+      // Week 5 Keyboard Navigation for Hangar & Start Screens
+      if (gameState === 'HANGAR') {
+        const shipList = ['viper', 'interceptor', 'dreadnought'];
+        let curIdx = shipList.indexOf(hangarActiveShipId);
+        if (curIdx === -1) curIdx = 0;
+
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+          e.preventDefault();
+          const nextIdx = (curIdx - 1 + shipList.length) % shipList.length;
+          selectHangarShip(shipList[nextIdx]);
+        } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+          e.preventDefault();
+          const nextIdx = (curIdx + 1) % shipList.length;
+          selectHangarShip(shipList[nextIdx]);
+        } else if (e.code === 'Enter' || e.code === 'Space') {
+          e.preventDefault();
+          const ship = SHIP_CONFIGS[hangarActiveShipId];
+          const isUnlocked = metaState.unlockedShips.includes(ship.id);
+          if (!isUnlocked) {
+            buyHangarShip(ship.id);
+          } else {
+            launchWithSelectedShip(ship.id);
+          }
+        } else if (e.code === 'Escape') {
+          e.preventDefault();
+          closeHangarToStart();
+        }
+      } else if (gameState === 'START') {
+        if (e.code === 'KeyH') {
+          e.preventDefault();
+          openHangar();
+        } else if (e.code === 'Enter' || e.code === 'Space') {
+          e.preventDefault();
+          startGame();
+        }
+      } else if (gameState === 'GAMEOVER') {
+        if (e.code === 'KeyH') {
+          e.preventDefault();
+          openHangar();
+        } else if (e.code === 'Enter' || e.code === 'Space') {
+          e.preventDefault();
+          restartGame();
+        }
       }
     });
     window.addEventListener('keyup', e => keys[e.code] = false);
@@ -965,6 +1543,213 @@
     bindPad('dpadRight', v => dpadR = v);
     bindPad('btnShoot', v => btnShootDown = v);
 
+    
+    /* ==========================================================================
+       HANGAR UI & CONTROLS (Screen State & Interaction)
+       ========================================================================== */
+    function openHangar() {
+      sfx.select();
+      loadMetaState();
+      hangarActiveShipId = metaState.selectedShip;
+      gameState = 'HANGAR';
+      document.getElementById('startScreen').style.display = 'none';
+      document.getElementById('gameOverScreen').style.display = 'none';
+      document.getElementById('hangarScreen').style.display = 'flex';
+      renderHangarUI();
+    }
+
+    function closeHangarToStart() {
+      sfx.select();
+      gameState = 'START';
+      document.getElementById('hangarScreen').style.display = 'none';
+      document.getElementById('startScreen').style.display = 'flex';
+    }
+
+    function renderHangarUI() {
+      document.getElementById('hangarScrapCount').textContent = metaState.scrap;
+      const grid = document.getElementById('hangarShipsGrid');
+      grid.innerHTML = '';
+
+      const shipKeys = Object.keys(SHIP_CONFIGS);
+      shipKeys.forEach(shipId => {
+        const ship = SHIP_CONFIGS[shipId];
+        const isUnlocked = metaState.unlockedShips.includes(shipId);
+        const isEquipped = metaState.selectedShip === shipId;
+        const isFocused = hangarActiveShipId === shipId;
+
+        const card = document.createElement('div');
+        card.className = 'ship-card' + (isFocused ? ' active' : '');
+        card.onclick = () => {
+          selectHangarShip(shipId);
+        };
+
+        const previewWrap = document.createElement('div');
+        previewWrap.className = 'ship-preview-wrap';
+        const canvasPreview = document.createElement('canvas');
+        canvasPreview.width = 76;
+        canvasPreview.height = 76;
+        drawShipPreview(canvasPreview, ship);
+        previewWrap.appendChild(canvasPreview);
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'ship-card-name';
+        nameEl.textContent = ship.name;
+
+        const paletteTag = document.createElement('div');
+        paletteTag.className = 'ship-card-palette-tag';
+        paletteTag.style.background = 'rgba(255,255,255,0.08)';
+        paletteTag.style.color = ship.palette.primary;
+        paletteTag.textContent = ship.palette.name;
+
+        const badge = document.createElement('div');
+        badge.className = 'ship-card-status-badge ' + (isEquipped ? 'status-equipped' : (isUnlocked ? 'status-unlocked' : 'status-locked'));
+        badge.textContent = isEquipped ? 'EQUIPPED' : (isUnlocked ? 'READY' : ('⚙ ' + ship.price));
+
+        card.appendChild(previewWrap);
+        card.appendChild(nameEl);
+        card.appendChild(paletteTag);
+        card.appendChild(badge);
+        grid.appendChild(card);
+      });
+
+      renderHangarDetailPanel();
+    }
+
+    function selectHangarShip(shipId) {
+      if (hangarActiveShipId !== shipId) {
+        hangarActiveShipId = shipId;
+        sfx.select();
+        renderHangarUI();
+      }
+    }
+
+    function drawShipPreview(cvs, ship) {
+      const pctx = cvs.getContext('2d');
+      pctx.clearRect(0, 0, cvs.width, cvs.height);
+      const cx = cvs.width / 2;
+      const cy = cvs.height / 2 + 6;
+      pctx.save();
+      pctx.translate(cx, cy);
+      pctx.scale(0.85, 0.85);
+      renderShipModel(pctx, ship, 0, false);
+      pctx.restore();
+    }
+
+    function renderHangarDetailPanel() {
+      const ship = SHIP_CONFIGS[hangarActiveShipId];
+      const panel = document.getElementById('shipDetailPanel');
+      const isUnlocked = metaState.unlockedShips.includes(ship.id);
+      const isEquipped = metaState.selectedShip === ship.id;
+
+      panel.innerHTML = '<div class="ship-detail-title-row">' +
+        '<div>' +
+          '<span style="font-size: 0.72rem; color: ' + ship.palette.primary + '; font-weight: bold;">' + ship.name + '</span>' +
+          '<span style="font-size: 0.5rem; color: #94a3b8; margin-left: 6px;">' + ship.subtitle + '</span>' +
+        '</div>' +
+        '<div style="font-size: 0.55rem; color: var(--neon-yellow);">' +
+          (isUnlocked ? '<span style="color: var(--neon-green);">OWNED</span>' : ('COST: ' + ship.price + ' SCRAP')) +
+        '</div>' +
+      '</div>' +
+      '<div class="ship-stats-table">' +
+        '<div class="stat-row">' +
+          '<span class="stat-label">SPEED:</span>' +
+          '<div class="stat-bar-container">' +
+            '<div class="stat-bar-fill" style="width: ' + ship.stats.speedPercent + '%; background: ' + ship.palette.primary + ';"></div>' +
+          '</div>' +
+          '<span class="stat-val-text">' + ship.speed.toFixed(1) + ' SPD</span>' +
+        '</div>' +
+        '<div class="stat-row">' +
+          '<span class="stat-label">HULL HP:</span>' +
+          '<div class="stat-bar-container">' +
+            '<div class="stat-bar-fill" style="width: ' + ship.stats.hpPercent + '%; background: #ff0055;"></div>' +
+          '</div>' +
+          '<span class="stat-val-text">' + ship.maxHp + ' HP</span>' +
+        '</div>' +
+        '<div class="stat-row">' +
+          '<span class="stat-label">FIREPOWER:</span>' +
+          '<div class="stat-bar-container">' +
+            '<div class="stat-bar-fill" style="width: ' + ship.stats.firepowerPercent + '%; background: var(--neon-yellow);"></div>' +
+          '</div>' +
+          '<span class="stat-val-text">' + ship.weaponMode.toUpperCase() + '</span>' +
+        '</div>' +
+        '<div class="stat-row">' +
+          '<span class="stat-label">DEFENSE:</span>' +
+          '<div class="stat-bar-container">' +
+            '<div class="stat-bar-fill" style="width: ' + ship.stats.defensePercent + '%; background: #00ffcc;"></div>' +
+          '</div>' +
+          '<span class="stat-val-text">' + Math.round(ship.shieldDurationMult * 100) + '% SHD</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="ship-desc-text">' + ship.desc + '</div>';
+
+      const actionsRow = document.getElementById('hangarActionButtons');
+      actionsRow.innerHTML = '';
+
+      if (!isUnlocked) {
+        const canAfford = metaState.scrap >= ship.price;
+        const buyBtn = document.createElement('button');
+        buyBtn.className = 'hangar-btn btn-buy';
+        buyBtn.textContent = 'BUY (⚙ ' + ship.price + ')';
+        buyBtn.onclick = () => buyHangarShip(ship.id);
+        if (!canAfford) {
+          buyBtn.style.opacity = '0.5';
+          buyBtn.style.cursor = 'not-allowed';
+        }
+        actionsRow.appendChild(buyBtn);
+      } else {
+        if (!isEquipped) {
+          const equipBtn = document.createElement('button');
+          equipBtn.className = 'hangar-btn btn-select';
+          equipBtn.textContent = 'EQUIP SHIP';
+          equipBtn.onclick = () => equipHangarShip(ship.id);
+          actionsRow.appendChild(equipBtn);
+        }
+        const launchBtn = document.createElement('button');
+        launchBtn.className = 'hangar-btn btn-launch';
+        launchBtn.textContent = 'LAUNCH ▶';
+        launchBtn.onclick = () => launchWithSelectedShip(ship.id);
+        actionsRow.appendChild(launchBtn);
+      }
+
+      const backBtn = document.createElement('button');
+      backBtn.className = 'hangar-btn btn-back';
+      backBtn.textContent = 'BACK ◀';
+      backBtn.onclick = closeHangarToStart;
+      actionsRow.appendChild(backBtn);
+    }
+
+    function buyHangarShip(shipId) {
+      const ship = SHIP_CONFIGS[shipId];
+      if (!ship || metaState.unlockedShips.includes(shipId)) return;
+      if (metaState.scrap >= ship.price) {
+        metaState.scrap -= ship.price;
+        metaState.unlockedShips.push(shipId);
+        metaState.selectedShip = shipId;
+        saveMetaState();
+        sfx.buy();
+        renderHangarUI();
+      } else {
+        sfx.deny();
+      }
+    }
+
+    function equipHangarShip(shipId) {
+      if (!metaState.unlockedShips.includes(shipId)) return;
+      metaState.selectedShip = shipId;
+      saveMetaState();
+      sfx.select();
+      renderHangarUI();
+    }
+
+    function launchWithSelectedShip(shipId) {
+      if (shipId && metaState.unlockedShips.includes(shipId)) {
+        metaState.selectedShip = shipId;
+        saveMetaState();
+      }
+      document.getElementById('hangarScreen').style.display = 'none';
+      restartGame();
+    }
+
     function startGame() {
       sfx.coinInsert();
       document.getElementById('startScreen').style.display = 'none';
@@ -976,24 +1761,38 @@
       document.getElementById('gameOverScreen').style.display = 'none';
       score = 0;
       combo = 1;
-      lives = 3;
+
+      // Apply Week 5 Pilot Ship configuration
+      loadMetaState();
+      const chosenShip = SHIP_CONFIGS[metaState.selectedShip] || SHIP_CONFIGS.viper;
+      player.shipId = chosenShip.id;
+      player.speed = chosenShip.speed;
+      player.maxHp = chosenShip.maxHp;
+      player.hp = chosenShip.maxHp;
+      lives = chosenShip.maxHp;
+      player.fireRate = chosenShip.fireRate;
+      player.homingCooldownRate = chosenShip.homingCooldownRate;
+      player.shieldDurationMult = chosenShip.shieldDurationMult;
+      player.scrapDropMult = chosenShip.scrapDropMult;
+      player.vulcanLevel = chosenShip.vulcanLevel;
+      player.weaponMode = chosenShip.weaponMode;
+      player.weaponTimer = chosenShip.weaponMode !== 'vulcan' ? (60 * 20) : 0;
+      player.shield = chosenShip.initialShield || 0;
+      player.overdrive = 0;
+      player.muzzle = 0;
+
+      sessionRunScrap = 0;
       player.x = W / 2;
       player.y = H - 130;
       player.vx = 0;
       player.vy = 0;
-      player.vulcanLevel = 1;
-      player.weaponMode = 'vulcan';
-      player.weaponTimer = 0;
-      player.shield = 0;
-      player.overdrive = 0;
-      player.muzzle = 0;
-      player.fireRate = 140;
       lasers = [];
       enemyLasers = [];
       enemies = [];
       particles = [];
       floatTexts = [];
       gems = [];
+      scraps = [];
       homingMissiles = [];
       powerups = [];
       hitFlash = 0;
@@ -1002,7 +1801,7 @@
       hitStop = 0;
       shockRings = [];
       currentSectorIndex = 0;
-      sectorBanner = { text: 'SECTOR 1: ASTEROID BELT', sub: 'SURVIVE THE METEOR HAZARDS', timer: 160 };
+      sectorBanner = { text: 'SECTOR 1: ASTEROID BELT', sub: 'PILOT: ' + chosenShip.name + ' [' + chosenShip.palette.name + ']', timer: 180 };
       boss = null;
       initAsteroids();
       initNeonCity();
@@ -1017,6 +1816,8 @@
       if (secEl) secEl.textContent = currentSectorIndex + 1;
       document.getElementById('hudHigh').textContent = Math.max(score, highScore);
       document.getElementById('hudLives').textContent = lives;
+      const scrapEl = document.getElementById('hudScrap');
+      if (scrapEl) scrapEl.textContent = sessionRunScrap;
     }
 
     // Sector progression & Sector check
@@ -1063,9 +1864,11 @@
 
       const roll = Math.random();
       let type = 'scout';
-      if (roll > 0.82) type = 'cruiser';      // Tank Cruiser with counter-turrets
-      else if (roll > 0.52) type = 'interceptor'; // Sine-wave diver
-      else if (roll > 0.25) type = 'swarmer';     // Fast homing drone
+      if (roll > 0.88) type = 'cruiser';              // Tank Cruiser with counter-turrets
+      else if (roll > 0.68) type = 'interceptor';         // Sine-wave diver
+      else if (roll > 0.48) type = 'swarmer';             // Fast homing drone
+      else if (roll > 0.32) type = 'asteroid_big';       // Heavy destructible space rock
+      else if (roll > 0.16) type = 'asteroid_small';     // Fast light meteorite
 
       const sideSpawn = Math.random() > 0.55;
       let startX = 40 + Math.random() * (W - 80);
@@ -1078,17 +1881,23 @@
         vx = startX < 0 ? (2.0 + Math.random() * 2) : -(2.0 + Math.random() * 2);
       }
 
+      const isBigAst = type === 'asteroid_big';
+      const isSmallAst = type === 'asteroid_small';
+      const isAst = isBigAst || isSmallAst;
+
       enemies.push({
         x: startX,
         y: startY,
         type: type,
-        w: type === 'cruiser' ? 56 : (type === 'interceptor' ? 36 : 24),
-        h: type === 'cruiser' ? 48 : (type === 'interceptor' ? 34 : 24),
-        hp: type === 'cruiser' ? 7 : (type === 'interceptor' ? 3 : 1),
-        speed: type === 'swarmer' ? 4.2 : (type === 'interceptor' ? 3.0 : 1.4),
-        vx: vx,
+        w: type === 'cruiser' ? 56 : (type === 'interceptor' ? 36 : (isBigAst ? 44 : (isSmallAst ? 26 : 24))),
+        h: type === 'cruiser' ? 48 : (type === 'interceptor' ? 34 : (isBigAst ? 44 : (isSmallAst ? 26 : 24))),
+        hp: type === 'cruiser' ? 7 : (type === 'interceptor' ? 3 : (isBigAst ? 4 : (isSmallAst ? 1 : 1))),
+        speed: type === 'swarmer' ? 4.2 : (type === 'interceptor' ? 3.0 : (isBigAst ? 1.5 : (isSmallAst ? 2.8 : 1.4))),
+        vx: isAst ? (vx || (Math.random() - 0.5) * 1.2) : vx,
+        rot: 0,
+        vrot: (Math.random() - 0.5) * 0.04,
         phase: Math.random() * Math.PI * 2,
-        color: type === 'cruiser' ? '#ff0055' : (type === 'interceptor' ? '#ffe600' : '#00f0ff'),
+        color: type === 'cruiser' ? '#ff0055' : (type === 'interceptor' ? '#ffe600' : (isAst ? '#94a3b8' : '#00f0ff')),
         lastShot: 0,
         flash: 0
       });
@@ -1120,6 +1929,29 @@
     }
 
     // Week2: shared kill routine (score, drops, juice)
+    
+    // Week 5 Scrap Economy Spawner
+    function spawnScrap(x, y, amount) {
+      const adjustedAmount = Math.max(1, Math.round(amount * (player.scrapDropMult || 1.0)));
+      // Spawn scrap cog pickups
+      const count = Math.min(6, Math.max(1, Math.ceil(adjustedAmount / 15)));
+      const valuePerCog = Math.max(1, Math.round(adjustedAmount / count));
+      for (let s = 0; s < count; s++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 1.0 + Math.random() * 2.2;
+        scraps.push({
+          x: x + (Math.random() - 0.5) * 16,
+          y: y + (Math.random() - 0.5) * 16,
+          vx: Math.cos(ang) * spd,
+          vy: Math.abs(Math.sin(ang) * spd) + 1.2,
+          val: valuePerCog,
+          rot: Math.random() * Math.PI * 2,
+          vrot: (Math.random() - 0.5) * 0.12,
+          size: valuePerCog >= 50 ? 9 : (valuePerCog >= 20 ? 7 : 5)
+        });
+      }
+    }
+
     function killEnemy(idx, e, now) {
       const isHeavy = e.type === 'cruiser';
       sfx.explosion(isHeavy);
@@ -1131,9 +1963,32 @@
       }
       addSparks(e.x, e.y, e.color, isHeavy ? 30 : 16, isHeavy ? 6 : 4);
       addSparks(e.x, e.y, '#ffffff', 8, 3);
-      const pts = (isHeavy ? 500 : 150) * combo;
+      let basePts = 150;
+      let baseScrap = 35;
+      if (e.type === 'cruiser') {
+        basePts = 500;
+        baseScrap = 150;
+      } else if (e.type === 'interceptor') {
+        basePts = 250;
+        baseScrap = 60;
+      } else if (e.type === 'asteroid_big') {
+        basePts = 180;
+        baseScrap = 25;
+      } else if (e.type === 'asteroid_small') {
+        basePts = 80;
+        baseScrap = 10;
+      } else if (e.type === 'swarmer') {
+        basePts = 120;
+        baseScrap = 30;
+      }
+
+      const pts = basePts * combo;
       score += pts;
       addFloatingText(e.x, e.y, `+${pts}${combo > 1 ? ' x' + combo : ''}`);
+
+      // Week 5 Scrap Drops (persists across runs)
+      spawnScrap(e.x, e.y, baseScrap);
+
       // drops: gems + occasional powerup pod
       if (Math.random() > 0.4) {
         gems.push({ x: e.x, y: e.y, vy: 2.4 });
@@ -1170,7 +2025,7 @@
         sfx.powerup();
         addFloatingText(player.x, player.y - 40, 'HOMING MISSILES', '#ffdd00');
       } else if (kind === 'shield') {
-        player.shield = 60 * 10;
+        player.shield = Math.round(60 * 10 * (player.shieldDurationMult || 1.0));
         sfx.shieldUp();
         addFloatingText(player.x, player.y - 40, 'SHIELD UP', '#00ffcc');
       } else if (kind === 'emp') {
@@ -1197,6 +2052,7 @@
         const pts = 200 * combo;
         score += pts;
         addFloatingText(e.x, e.y, `+${pts}`);
+        spawnScrap(e.x, e.y, e.type === 'cruiser' ? 120 : (e.type === 'interceptor' ? 50 : 25));
         if (Math.random() > 0.6) gems.push({ x: e.x, y: e.y, vy: 2.4 });
         enemies.splice(k, 1);
       }
@@ -1261,140 +2117,385 @@
       if (lives <= 0) {
         gameState = 'GAMEOVER';
         bgm.stop();
+
+        // Week 5: Persist collected scrap
+        loadMetaState();
+        metaState.scrap += sessionRunScrap;
+        saveMetaState();
+
         document.getElementById('finalScore').textContent = score;
         document.getElementById('gameOverTaunt').textContent = taunts[Math.floor(Math.random() * taunts.length)];
+        const runScrapEl = document.getElementById('gameOverRunScrap');
+        if (runScrapEl) runScrapEl.textContent = '+' + sessionRunScrap;
+        const totalScrapEl = document.getElementById('gameOverTotalScrap');
+        if (totalScrapEl) totalScrapEl.textContent = metaState.scrap;
+
         document.getElementById('gameOverScreen').style.display = 'flex';
       }
     }
 
-    // Render Retro Player Fighter
+    // General Pilot Ship Model Renderer (supports VIPER, INTERCEPTOR, DREADNOUGHT palettes and geometry)
+    function renderShipModel(targetCtx, shipDef, tilt = 0, animateThruster = true) {
+      const pal = shipDef.palette;
+      targetCtx.save();
+      targetCtx.rotate(tilt * 0.28);
+
+      targetCtx.shadowColor = pal.glow;
+      targetCtx.shadowBlur = 12;
+
+      if (shipDef.id === 'interceptor') {
+        // --- INTERCEPTOR: Needle forward-swept supersonic delta wings ---
+        // Outer Wing Trim
+        targetCtx.fillStyle = pal.shadow;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -36);
+        targetCtx.lineTo(-32, 10);
+        targetCtx.lineTo(-20, 22);
+        targetCtx.lineTo(20, 22);
+        targetCtx.lineTo(32, 10);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // Main Metallic Wing Plates
+        targetCtx.fillStyle = pal.secondary;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -34);
+        targetCtx.lineTo(-28, 8);
+        targetCtx.lineTo(-14, 18);
+        targetCtx.lineTo(14, 18);
+        targetCtx.lineTo(28, 8);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // Wing Armor Highlights
+        targetCtx.fillStyle = pal.accent;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -28);
+        targetCtx.lineTo(-18, 6);
+        targetCtx.lineTo(-6, 12);
+        targetCtx.lineTo(6, 12);
+        targetCtx.lineTo(18, 6);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // High-speed wingtip canards
+        targetCtx.fillStyle = pal.primary;
+        targetCtx.fillRect(-31, 0, 3, 16);
+        targetCtx.fillRect(28, 0, 3, 16);
+
+        // Forward Dual Plasma Lances
+        targetCtx.fillStyle = '#1e293b';
+        targetCtx.fillRect(-18, -14, 4, 26);
+        targetCtx.fillRect(14, -14, 4, 26);
+        targetCtx.fillStyle = pal.primary;
+        targetCtx.fillRect(-18, -18, 4, 6);
+        targetCtx.fillRect(14, -18, 4, 6);
+
+        // Sleek central fuselage
+        targetCtx.fillStyle = '#090d16';
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -42);
+        targetCtx.lineTo(-7, 16);
+        targetCtx.lineTo(0, 12);
+        targetCtx.lineTo(7, 16);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        targetCtx.fillStyle = pal.primary;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -40);
+        targetCtx.lineTo(-4, 12);
+        targetCtx.lineTo(0, 8);
+        targetCtx.lineTo(4, 12);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // Cyan Cockpit
+        targetCtx.fillStyle = pal.cockpit;
+        targetCtx.shadowColor = pal.cockpit;
+        targetCtx.shadowBlur = 8;
+        targetCtx.beginPath();
+        targetCtx.ellipse(0, -12, 3, 13, 0, 0, Math.PI * 2);
+        targetCtx.fill();
+
+        targetCtx.fillStyle = '#ffffff';
+        targetCtx.shadowBlur = 4;
+        targetCtx.beginPath();
+        targetCtx.ellipse(-1, -15, 1.2, 5, -0.2, 0, Math.PI * 2);
+        targetCtx.fill();
+
+        // High-velocity Magenta Thrusters
+        targetCtx.shadowBlur = 0;
+        const tf1 = animateThruster ? (14 + Math.random() * 16) : 18;
+        const tf2 = animateThruster ? (14 + Math.random() * 16) : 18;
+
+        targetCtx.fillStyle = pal.thrusterOuter;
+        targetCtx.beginPath();
+        targetCtx.moveTo(-6, 16);
+        targetCtx.lineTo(-1, 16);
+        targetCtx.lineTo(-3.5, 16 + tf1);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        targetCtx.beginPath();
+        targetCtx.moveTo(1, 16);
+        targetCtx.lineTo(6, 16);
+        targetCtx.lineTo(3.5, 16 + tf2);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        targetCtx.fillStyle = pal.thrusterInner;
+        targetCtx.beginPath();
+        targetCtx.moveTo(-4, 16);
+        targetCtx.lineTo(-2, 16);
+        targetCtx.lineTo(-3, 16 + tf1 * 0.6);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        targetCtx.beginPath();
+        targetCtx.moveTo(2, 16);
+        targetCtx.lineTo(4, 16);
+        targetCtx.lineTo(3, 16 + tf2 * 0.6);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+      } else if (shipDef.id === 'dreadnought') {
+        // --- DREADNOUGHT: Heavy armored fortress with quad gun pods ---
+        // Heavy Hull Armor Trim
+        targetCtx.fillStyle = pal.shadow;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -30);
+        targetCtx.lineTo(-34, 0);
+        targetCtx.lineTo(-24, 24);
+        targetCtx.lineTo(24, 24);
+        targetCtx.lineTo(34, 0);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // Main Heavy Armor Plates
+        targetCtx.fillStyle = pal.secondary;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -28);
+        targetCtx.lineTo(-30, -2);
+        targetCtx.lineTo(-20, 20);
+        targetCtx.lineTo(20, 20);
+        targetCtx.lineTo(30, -2);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // Armor Plate Highlights
+        targetCtx.fillStyle = pal.accent;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -24);
+        targetCtx.lineTo(-20, 0);
+        targetCtx.lineTo(-12, 16);
+        targetCtx.lineTo(12, 16);
+        targetCtx.lineTo(20, 0);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // Heavy Flank Sponsons
+        targetCtx.fillStyle = '#1e293b';
+        targetCtx.fillRect(-35, 2, 7, 18);
+        targetCtx.fillRect(28, 2, 7, 18);
+        targetCtx.fillStyle = pal.primary;
+        targetCtx.fillRect(-33, 4, 3, 14);
+        targetCtx.fillRect(30, 4, 3, 14);
+
+        // Quad Vulcan Gun Pods
+        targetCtx.fillStyle = '#0f172a';
+        targetCtx.fillRect(-22, -8, 6, 24);
+        targetCtx.fillRect(16, -8, 6, 24);
+        targetCtx.fillStyle = pal.primary;
+        targetCtx.fillRect(-21, -14, 4, 8);
+        targetCtx.fillRect(17, -14, 4, 8);
+
+        // Center Fortress Citadel
+        targetCtx.fillStyle = '#111827';
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -34);
+        targetCtx.lineTo(-12, 18);
+        targetCtx.lineTo(12, 18);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        targetCtx.fillStyle = pal.primary;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -31);
+        targetCtx.lineTo(-8, 14);
+        targetCtx.lineTo(8, 14);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // Armored Green Command Cockpit
+        targetCtx.fillStyle = pal.cockpit;
+        targetCtx.shadowColor = pal.cockpit;
+        targetCtx.shadowBlur = 8;
+        targetCtx.beginPath();
+        targetCtx.ellipse(0, -8, 5, 8, 0, 0, Math.PI * 2);
+        targetCtx.fill();
+
+        targetCtx.fillStyle = '#ffffff';
+        targetCtx.shadowBlur = 4;
+        targetCtx.beginPath();
+        targetCtx.ellipse(-1.5, -9, 1.5, 4, -0.2, 0, Math.PI * 2);
+        targetCtx.fill();
+
+        // Triple Heavy Amber Thrusters
+        targetCtx.shadowBlur = 0;
+        const df1 = animateThruster ? (12 + Math.random() * 10) : 15;
+        const df2 = animateThruster ? (16 + Math.random() * 12) : 18;
+        const df3 = animateThruster ? (12 + Math.random() * 10) : 15;
+
+        // 3 Thruster bells
+        [-12, 0, 12].forEach((xOff, idx) => {
+          const fl = idx === 1 ? df2 : (idx === 0 ? df1 : df3);
+          targetCtx.fillStyle = pal.thrusterOuter;
+          targetCtx.beginPath();
+          targetCtx.moveTo(xOff - 4, 20);
+          targetCtx.lineTo(xOff + 4, 20);
+          targetCtx.lineTo(xOff, 20 + fl);
+          targetCtx.closePath();
+          targetCtx.fill();
+
+          targetCtx.fillStyle = pal.thrusterInner;
+          targetCtx.beginPath();
+          targetCtx.moveTo(xOff - 2, 20);
+          targetCtx.lineTo(xOff + 2, 20);
+          targetCtx.lineTo(xOff, 20 + fl * 0.55);
+          targetCtx.closePath();
+          targetCtx.fill();
+        });
+
+      } else {
+        // --- VIPER (Standard Cyan Fighter) ---
+        // 1. Armored Swept Wings
+        targetCtx.fillStyle = pal.shadow;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -32);
+        targetCtx.lineTo(-30, 18);
+        targetCtx.lineTo(-12, 12);
+        targetCtx.lineTo(12, 12);
+        targetCtx.lineTo(30, 18);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // Main Cyan Metallic Wing Plates
+        targetCtx.fillStyle = pal.secondary;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -30);
+        targetCtx.lineTo(-26, 15);
+        targetCtx.lineTo(-10, 10);
+        targetCtx.lineTo(10, 10);
+        targetCtx.lineTo(26, 15);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // Wing Armor Highlights
+        targetCtx.fillStyle = pal.accent;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -26);
+        targetCtx.lineTo(-16, 10);
+        targetCtx.lineTo(-6, 6);
+        targetCtx.lineTo(6, 6);
+        targetCtx.lineTo(16, 10);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // Wingtip Aerodynamic Stabilizer Fins
+        targetCtx.fillStyle = pal.primary;
+        targetCtx.fillRect(-29, 2, 4, 15);
+        targetCtx.fillRect(25, 2, 4, 15);
+
+        // 2. Dual Vulcan / Plasma Gun Pods
+        targetCtx.fillStyle = "#1e293b";
+        targetCtx.fillRect(-22, -4, 5, 20);
+        targetCtx.fillRect(17, -4, 5, 20);
+        targetCtx.fillStyle = "#ff0055";
+        targetCtx.fillRect(-21, -8, 3, 5);
+        targetCtx.fillRect(18, -8, 3, 5);
+
+        // 3. Central Jet Fuselage & Forward Nosecone
+        targetCtx.fillStyle = "#0f172a";
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -38);
+        targetCtx.lineTo(-9, 14);
+        targetCtx.lineTo(0, 8);
+        targetCtx.lineTo(9, 14);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        targetCtx.fillStyle = pal.primary;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, -36);
+        targetCtx.lineTo(-6, 10);
+        targetCtx.lineTo(0, 6);
+        targetCtx.lineTo(6, 10);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // 4. Armored Tinted Cockpit
+        targetCtx.fillStyle = pal.cockpit;
+        targetCtx.shadowColor = pal.cockpit;
+        targetCtx.shadowBlur = 8;
+        targetCtx.beginPath();
+        targetCtx.ellipse(0, -10, 4, 11, 0, 0, Math.PI * 2);
+        targetCtx.fill();
+
+        // Glass specular gleam
+        targetCtx.fillStyle = "#ffffff";
+        targetCtx.shadowBlur = 4;
+        targetCtx.beginPath();
+        targetCtx.ellipse(-1.5, -12, 1.5, 5, -0.2, 0, Math.PI * 2);
+        targetCtx.fill();
+
+        // 5. Dual Afterburner Plasma Thrusters
+        targetCtx.shadowBlur = 0;
+        const f1 = animateThruster ? (12 + Math.random() * 14) : 15;
+        const f2 = animateThruster ? (12 + Math.random() * 14) : 15;
+
+        // Outer Flame
+        targetCtx.fillStyle = pal.thrusterOuter;
+        targetCtx.beginPath();
+        targetCtx.moveTo(-8, 12);
+        targetCtx.lineTo(-2, 12);
+        targetCtx.lineTo(-5, 12 + f1);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        targetCtx.beginPath();
+        targetCtx.moveTo(2, 12);
+        targetCtx.lineTo(8, 12);
+        targetCtx.lineTo(5, 12 + f2);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        // Inner Core Flame
+        targetCtx.fillStyle = pal.thrusterInner;
+        targetCtx.beginPath();
+        targetCtx.moveTo(-6, 12);
+        targetCtx.lineTo(-4, 12);
+        targetCtx.lineTo(-5, 12 + f1 * 0.55);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        targetCtx.beginPath();
+        targetCtx.moveTo(4, 12);
+        targetCtx.lineTo(6, 12);
+        targetCtx.lineTo(5, 12 + f2 * 0.55);
+        targetCtx.closePath();
+        targetCtx.fill();
+      }
+
+      targetCtx.restore();
+    }
+
+    // Render Active Player Fighter with Ship Palette
     function renderPlayerPlane(x, y, tilt) {
+      const activeShip = SHIP_CONFIGS[player.shipId] || SHIP_CONFIGS.viper;
       ctx.save();
       ctx.translate(x, y);
-      ctx.rotate(tilt * 0.28);
-
-      // Jet Glow / Shadows
-      ctx.shadowColor = "#00f0ff";
-      ctx.shadowBlur = 12;
-
-      // 1. Armored Swept Wings with 16-bit Panel Shading
-      // Outer Wing Shadow / Trim
-      ctx.fillStyle = "#034066";
-      ctx.beginPath();
-      ctx.moveTo(0, -32);
-      ctx.lineTo(-30, 18);
-      ctx.lineTo(-12, 12);
-      ctx.lineTo(12, 12);
-      ctx.lineTo(30, 18);
-      ctx.closePath();
-      ctx.fill();
-
-      // Main Cyan Metallic Wing Plates
-      ctx.fillStyle = "#0284c7";
-      ctx.beginPath();
-      ctx.moveTo(0, -30);
-      ctx.lineTo(-26, 15);
-      ctx.lineTo(-10, 10);
-      ctx.lineTo(10, 10);
-      ctx.lineTo(26, 15);
-      ctx.closePath();
-      ctx.fill();
-
-      // Wing Armor Highlights
-      ctx.fillStyle = "#38bdf8";
-      ctx.beginPath();
-      ctx.moveTo(0, -26);
-      ctx.lineTo(-16, 10);
-      ctx.lineTo(-6, 6);
-      ctx.lineTo(6, 6);
-      ctx.lineTo(16, 10);
-      ctx.closePath();
-      ctx.fill();
-
-      // Wingtip Aerodynamic Stabilizer Fins
-      ctx.fillStyle = "#00f0ff";
-      ctx.fillRect(-29, 2, 4, 15);
-      ctx.fillRect(25, 2, 4, 15);
-
-      // 2. Dual Vulcan / Plasma Gun Pods (ITestItSoYouDOnt Arsenal)
-      ctx.fillStyle = "#1e293b";
-      ctx.fillRect(-22, -4, 5, 20);
-      ctx.fillRect(17, -4, 5, 20);
-      ctx.fillStyle = "#ff0055"; // Laser barrel tips
-      ctx.fillRect(-21, -8, 3, 5);
-      ctx.fillRect(18, -8, 3, 5);
-
-      // 3. Central Jet Fuselage & Forward Nosecone
-      ctx.fillStyle = "#0f172a";
-      ctx.beginPath();
-      ctx.moveTo(0, -38);
-      ctx.lineTo(-9, 14);
-      ctx.lineTo(0, 8);
-      ctx.lineTo(9, 14);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = "#00f0ff";
-      ctx.beginPath();
-      ctx.moveTo(0, -36);
-      ctx.lineTo(-6, 10);
-      ctx.lineTo(0, 6);
-      ctx.lineTo(6, 10);
-      ctx.closePath();
-      ctx.fill();
-
-      // 4. Armored Tinted Cockpit with High-Tech Glass Reflection
-      ctx.fillStyle = "#facc15";
-      ctx.shadowColor = "#facc15";
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.ellipse(0, -10, 4, 11, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Glass specular gleam
-      ctx.fillStyle = "#ffffff";
-      ctx.shadowBlur = 4;
-      ctx.beginPath();
-      ctx.ellipse(-1.5, -12, 1.5, 5, -0.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 5. Dual Afterburner Plasma Thrusters (Animated Cyan + Amber Flame)
-      ctx.shadowBlur = 0;
-      const f1 = 12 + Math.random() * 14;
-      const f2 = 12 + Math.random() * 14;
-
-      // Outer Orange Plume
-      ctx.fillStyle = "#ff5500";
-      ctx.beginPath();
-      ctx.moveTo(-8, 12);
-      ctx.lineTo(-2, 12);
-      ctx.lineTo(-5, 12 + f1);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(2, 12);
-      ctx.lineTo(8, 12);
-      ctx.lineTo(5, 12 + f2);
-      ctx.closePath();
-      ctx.fill();
-
-      // Inner Core Superheated Blue Flame
-      ctx.fillStyle = "#00f0ff";
-      ctx.beginPath();
-      ctx.moveTo(-6, 12);
-      ctx.lineTo(-4, 12);
-      ctx.lineTo(-5, 12 + f1 * 0.55);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(4, 12);
-      ctx.lineTo(6, 12);
-      ctx.lineTo(5, 12 + f2 * 0.55);
-      ctx.closePath();
-      ctx.fill();
-
+      renderShipModel(ctx, activeShip, tilt, true);
       ctx.restore();
     }
 
@@ -1456,8 +2557,35 @@
         ctx.lineTo(18, -16);
         ctx.closePath();
         ctx.fill();
+      } else if (e.type === 'asteroid_big' || e.type === 'asteroid_small') {
+        // Destructible Asteroid Rock
+        const isBig = e.type === 'asteroid_big';
+        const r = isBig ? 20 : 12;
+        ctx.rotate(e.rot || 0);
+        ctx.fillStyle = flashed ? '#ffffff' : (isBig ? '#334155' : '#475569');
+        ctx.strokeStyle = flashed ? '#ffffff' : '#64748b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const sides = 7;
+        for (let s = 0; s < sides; s++) {
+          const a = (s / sides) * Math.PI * 2;
+          const dr = r * (0.8 + ((s % 2) * 0.3));
+          const px = Math.cos(a) * dr;
+          const py = Math.sin(a) * dr;
+          if (s === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Crater details
+        ctx.fillStyle = flashed ? '#ffffff' : '#1e293b';
+        ctx.beginPath();
+        ctx.arc(r * 0.25, -r * 0.2, r * 0.28, 0, Math.PI * 2);
+        ctx.fill();
       } else {
-        // Swarmer Diamond
+        // Swarmer / Scout Diamond
         ctx.beginPath();
         ctx.moveTo(0, 14);
         ctx.lineTo(-12, 0);
@@ -1654,8 +2782,10 @@
             }
           } else if (player.weaponMode === 'homing') {
             sfx.missileLaunch();
-            for (const off of [-14, 14]) {
-              homingMissiles.push({ x: player.x + off, y: player.y, vx: off * 0.15, vy: -6, life: 120 });
+            const missileCount = player.homingCooldownRate < 0.8 ? 3 : 2;
+            const offsets = missileCount === 3 ? [-18, 0, 18] : [-14, 14];
+            for (const off of offsets) {
+              homingMissiles.push({ x: player.x + off, y: player.y, vx: off * 0.18, vy: -7, life: 130 });
             }
             lasers.push({ x: player.x, y: player.y - 10, w: 4, h: 14 });
           } else {
@@ -1686,8 +2816,10 @@
           const l = lasers[i];
           l.y += (l.vy !== undefined ? l.vy : -14);
           l.x += (l.vx !== undefined ? l.vx : 0);
-          ctx.fillStyle = player.overdrive > 0 ? '#ffe600' : '#00f0ff';
-          ctx.shadowColor = player.overdrive > 0 ? '#ffe600' : '#00f0ff';
+          const activePal = (SHIP_CONFIGS[player.shipId] || SHIP_CONFIGS.viper).palette;
+          const laserCol = player.overdrive > 0 ? '#ffe600' : activePal.laser;
+          ctx.fillStyle = laserCol;
+          ctx.shadowColor = laserCol;
           ctx.shadowBlur = 8;
           ctx.fillRect(l.x - l.w / 2, l.y, l.w, l.h);
           ctx.shadowBlur = 0;
@@ -1921,6 +3053,9 @@
               for (let g = 0; g < 8; g++) {
                 gems.push({ x: boss.x + (Math.random() - 0.5) * 100, y: boss.y + Math.random() * 30, vy: 2.2 });
               }
+              // Massive Boss Mothership Scrap Reward!
+              spawnScrap(boss.x, boss.y, 1000);
+              addFloatingText(boss.x, boss.y - 30, '+1000 SCRAP SALVAGE!', '#ffe600');
               boss.active = false;
               boss = null;
               sectorBanner = {
@@ -2147,12 +3282,17 @@
           const e = enemies[i];
           e.phase += 0.04;
 
+          if (e.rot !== undefined) e.rot += e.vrot || 0.02;
+
           if (e.type === 'interceptor') {
             e.y += e.speed;
             e.x += Math.sin(e.phase) * 3.5 + e.vx;
           } else if (e.type === 'swarmer') {
             e.y += e.speed;
             e.x += (player.x - e.x) * 0.025;
+          } else if (e.type === 'asteroid_big' || e.type === 'asteroid_small') {
+            e.y += e.speed;
+            e.x += e.vx;
           } else if (e.type === 'cruiser') {
             e.y += e.speed;
             e.x += Math.sin(e.phase * 0.5) * 1.6;
@@ -2230,6 +3370,55 @@
             gems.splice(i, 1);
           } else if (g.y > H + 20) {
             gems.splice(i, 1);
+          }
+        }
+
+        // 7a-2. Week 5 Scrap Metal Cogs (persists into vault on run completion)
+        for (let i = scraps.length - 1; i >= 0; i--) {
+          const sc = scraps[i];
+          sc.y += sc.vy;
+          sc.x += sc.vx;
+          sc.vx *= 0.98;
+          sc.rot += sc.vrot;
+
+          // Draw rotating neon-metallic Scrap Cog
+          ctx.save();
+          ctx.translate(sc.x, sc.y);
+          ctx.rotate(sc.rot);
+          ctx.fillStyle = '#ffe600';
+          ctx.shadowColor = '#ffe600';
+          ctx.shadowBlur = 6;
+
+          // Gear cog shape
+          const sz = sc.size;
+          ctx.fillRect(-sz, -sz, sz * 2, sz * 2);
+          ctx.rotate(Math.PI / 4);
+          ctx.fillRect(-sz, -sz, sz * 2, sz * 2);
+
+          // Center hole
+          ctx.fillStyle = '#050508';
+          ctx.beginPath();
+          ctx.arc(0, 0, sz * 0.35, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // Player magnet / pickup check
+          const distToPlayer = Math.hypot(player.x - sc.x, player.y - sc.y);
+          if (distToPlayer < 70) {
+            // Magnetic attraction
+            sc.x += (player.x - sc.x) * 0.18;
+            sc.y += (player.y - sc.y) * 0.18;
+          }
+
+          if (distToPlayer < 32) {
+            sfx.coin(1.3 + Math.random() * 0.3);
+            addSparks(sc.x, sc.y, '#ffe600', 6, 3);
+            sessionRunScrap += sc.val;
+            addFloatingText(sc.x, sc.y, '+' + sc.val + ' ⚙', '#ffe600');
+            updateHUD();
+            scraps.splice(i, 1);
+          } else if (sc.y > H + 30 || sc.x < -40 || sc.x > W + 40) {
+            scraps.splice(i, 1);
           }
         }
 
