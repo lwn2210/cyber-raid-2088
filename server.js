@@ -148,7 +148,12 @@ const server = http.createServer(async (req, res) => {
     if (!filePath.startsWith(ROOT)) { res.writeHead(403); return res.end('forbidden'); }
     fs.readFile(filePath, (err, data) => {
       if (err) { res.writeHead(404); return res.end('not found'); }
-      res.writeHead(200, { 'Content-Type': MIME[path.extname(filePath)] || 'application/octet-stream' });
+      const headers = { 'Content-Type': MIME[path.extname(filePath)] || 'application/octet-stream' };
+      // never cache HTML or sprites: stale code is the #1 "fix lagi bro" cause
+      if (path.extname(filePath) === '.html' || filePath.includes(path.join(ROOT, 'assets'))) {
+        headers['Cache-Control'] = 'no-cache, must-revalidate';
+      }
+      res.writeHead(200, headers);
       res.end(data);
     });
   } catch (e) {
