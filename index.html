@@ -537,6 +537,140 @@
       text-align: center;
     }
 
+    /* Week 6: Hangar Upgrade Bay */
+    .hangar-tab-row {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .hangar-tab {
+      flex: 1;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.55rem;
+      padding: 10px 0;
+      background: #0b1220;
+      color: #64748b;
+      border: 2px solid #1e293b;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .hangar-tab.active {
+      color: #000;
+      background: var(--neon-cyan);
+      border-color: #fff;
+      box-shadow: 0 0 14px rgba(0, 240, 255, 0.55);
+    }
+
+    .upgrades-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      background: rgba(5, 8, 16, 0.72);
+      border: 2px solid rgba(0, 240, 255, 0.28);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .upgrade-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+
+    .upgrade-row.upgrade-maxed {
+      border-color: rgba(0, 255, 102, 0.45);
+      background: rgba(0, 255, 102, 0.06);
+    }
+
+    .upgrade-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .upgrade-name {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.5rem;
+      letter-spacing: 1px;
+    }
+
+    .upgrade-effect {
+      font-size: 0.46rem;
+      color: #94a3b8;
+      margin-top: 3px;
+    }
+
+    .upgrade-pips {
+      display: flex;
+      gap: 4px;
+      margin-top: 5px;
+    }
+
+    .upgrade-pip {
+      width: 14px;
+      height: 6px;
+      border-radius: 2px;
+      background: #1e293b;
+      border: 1px solid #334155;
+    }
+
+    .upgrade-pip.filled {
+      border-color: rgba(255, 255, 255, 0.6);
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    .upgrade-desc {
+      font-family: 'VT323', monospace;
+      font-size: 0.82rem;
+      color: #64748b;
+      line-height: 1.2;
+      margin-top: 4px;
+    }
+
+    .upgrade-buy-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.48rem;
+      padding: 9px 12px;
+      border: 2px solid #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      background: var(--neon-yellow);
+      color: #000;
+      white-space: nowrap;
+      box-shadow: 2px 2px 0 #000;
+      transition: all 0.12s ease;
+    }
+
+    .upgrade-buy-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0 0 0 #000;
+    }
+
+    .upgrade-buy-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .upgrade-buy-btn.btn-maxed {
+      background: var(--neon-green);
+      box-shadow: 0 0 12px rgba(0, 255, 102, 0.5);
+    }
+
+    .upgrades-panel .hangar-btn {
+      align-self: center;
+      margin-top: 4px;
+    }
+
   </style>
 </head>
 <body>
@@ -610,6 +744,11 @@
           </div>
         </div>
 
+        <div class="hangar-tab-row">
+          <button id="tabShips" class="hangar-tab active" onclick="switchHangarTab('ships')">◆ SHIPS</button>
+          <button id="tabUpgrades" class="hangar-tab" onclick="switchHangarTab('upgrades')">▲ UPGRADES</button>
+        </div>
+
         <div class="ships-grid" id="hangarShipsGrid">
           <!-- Rendered dynamically -->
         </div>
@@ -618,11 +757,15 @@
           <!-- Rendered dynamically -->
         </div>
 
+        <div class="upgrades-panel" id="upgradesPanel" style="display: none;">
+          <!-- Week 6 upgrade tracks rendered dynamically -->
+        </div>
+
         <div class="hangar-actions-row" id="hangarActionButtons">
           <!-- Primary action (LAUNCH / EQUIP / BUY) + BACK -->
         </div>
 
-        <div class="hangar-kbd-nav-tip">
+        <div class="hangar-kbd-nav-tip" id="hangarNavTip">
           [◀/▶] SELECT SHIP · [ENTER] ACTION / LAUNCH · [ESC] TITLE
         </div>
       </div>
@@ -1210,10 +1353,76 @@
       }
     };
 
+    /* ==========================================================================
+       WEEK 6: HANGAR UPGRADE BAY — PERMANENT SCRAP-BOUGHT PERKS
+       Five upgrade tracks purchased with scrap, persisted in metaState.
+       ========================================================================== */
+    const UPGRADE_DEFS = {
+      fireRate: {
+        id: 'fireRate',
+        name: 'RAPID COILS',
+        maxLevel: 5,
+        baseCost: 150,
+        costGrowth: 1.55,
+        effect: '-5% REFIRE DELAY / LV',
+        color: '#00f0ff',
+        desc: 'Overclocked capacitor coils shorten the vulcan refire window. Stacks with all ship frames.'
+      },
+      maxHp: {
+        id: 'maxHp',
+        name: 'HULL PLATING',
+        maxLevel: 3,
+        baseCost: 400,
+        costGrowth: 2.1,
+        effect: '+1 MAX HULL HP / LV',
+        color: '#ff0055',
+        desc: 'Bolt-on composite armor segments. Each level welds one extra hit point onto the hull.'
+      },
+      magnet: {
+        id: 'magnet',
+        name: 'SALVAGE MAGNET',
+        maxLevel: 5,
+        baseCost: 120,
+        costGrowth: 1.55,
+        effect: '+18PX PULL RADIUS / LV',
+        color: '#ffe600',
+        desc: 'Electromagnetic salvage array drags stray scrap cogs toward the ship from farther away.'
+      },
+      scrapBonus: {
+        id: 'scrapBonus',
+        name: 'SALVAGE OPTIMIZER',
+        maxLevel: 5,
+        baseCost: 180,
+        costGrowth: 1.6,
+        effect: '+8% SCRAP VALUE / LV',
+        color: '#00ff66',
+        desc: 'Refinery firmware squeezes more usable alloy out of every destroyed hostile hull.'
+      },
+      shieldStart: {
+        id: 'shieldStart',
+        name: 'AEGIS CHARGE',
+        maxLevel: 3,
+        baseCost: 250,
+        costGrowth: 1.9,
+        effect: 'SPAWN WITH +3S SHIELD / LV',
+        color: '#00ffcc',
+        desc: 'Pre-charged deflector bubble on launch. Protects during the frantic first spawn waves.'
+      }
+    };
+
+    function upgradeCost(def, level) {
+      return Math.round((def.baseCost * Math.pow(def.costGrowth, level)) / 10) * 10;
+    }
+
+    function getUpgradeLevel(id) {
+      return (metaState.upgrades && metaState.upgrades[id]) || 0;
+    }
+
     let metaState = {
       scrap: 0,
       unlockedShips: ['viper'],
-      selectedShip: 'viper'
+      selectedShip: 'viper',
+      upgrades: {}
     };
 
     function loadMetaState() {
@@ -1234,13 +1443,23 @@
             } else {
               metaState.selectedShip = 'viper';
             }
+            // Week 6: sanitize upgrade levels (clamp to defined track maxima)
+            metaState.upgrades = {};
+            if (parsed.upgrades && typeof parsed.upgrades === 'object') {
+              Object.keys(UPGRADE_DEFS).forEach(id => {
+                const lvl = parsed.upgrades[id];
+                if (typeof lvl === 'number' && lvl > 0) {
+                  metaState.upgrades[id] = Math.min(UPGRADE_DEFS[id].maxLevel, Math.floor(lvl));
+                }
+              });
+            }
             return;
           }
         }
       } catch (err) {
         console.warn('Corrupt meta-progression data detected. Resetting to defaults.', err);
       }
-      metaState = { scrap: 0, unlockedShips: ['viper'], selectedShip: 'viper' };
+      metaState = { scrap: 0, unlockedShips: ['viper'], selectedShip: 'viper', upgrades: {} };
       saveMetaState();
     }
 
@@ -1257,6 +1476,7 @@
     let sessionRunScrap = 0;
     let scraps = []; // { x, y, vy, value, size, rot, vrot }
     let hangarActiveShipId = metaState.selectedShip || 'viper';
+    let hangarTab = 'ships'; // Week 6: 'ships' | 'upgrades'
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -1461,6 +1681,14 @@
 
       // Week 5 Keyboard Navigation for Hangar & Start Screens
       if (gameState === 'HANGAR') {
+        // Week 6: in the Upgrade Bay, only ESC is active
+        if (hangarTab === 'upgrades') {
+          if (e.code === 'Escape') {
+            e.preventDefault();
+            closeHangarToStart();
+          }
+          return;
+        }
         const shipList = ['viper', 'interceptor', 'dreadnought'];
         let curIdx = shipList.indexOf(hangarActiveShipId);
         if (curIdx === -1) curIdx = 0;
@@ -1565,8 +1793,31 @@
       document.getElementById('startScreen').style.display = 'flex';
     }
 
+    function switchHangarTab(tab) {
+      if (hangarTab === tab) return;
+      hangarTab = tab;
+      sfx.select();
+      renderHangarUI();
+    }
+
     function renderHangarUI() {
       document.getElementById('hangarScrapCount').textContent = metaState.scrap;
+
+      const isUpgradesTab = hangarTab === 'upgrades';
+      document.getElementById('tabShips').classList.toggle('active', !isUpgradesTab);
+      document.getElementById('tabUpgrades').classList.toggle('active', isUpgradesTab);
+      document.getElementById('hangarShipsGrid').style.display = isUpgradesTab ? 'none' : 'grid';
+      document.getElementById('shipDetailPanel').style.display = isUpgradesTab ? 'none' : 'block';
+      document.getElementById('upgradesPanel').style.display = isUpgradesTab ? 'flex' : 'none';
+      document.getElementById('hangarNavTip').textContent = isUpgradesTab
+        ? '[ESC] TITLE · SCRAP MELT-DOWN INTO PERMANENT HULL UPGRADES'
+        : '[◀/▶] SELECT SHIP · [ENTER] ACTION / LAUNCH · [ESC] TITLE';
+
+      if (isUpgradesTab) {
+        renderUpgradesPanel();
+        return;
+      }
+
       const grid = document.getElementById('hangarShipsGrid');
       grid.innerHTML = '';
 
@@ -1733,6 +1984,103 @@
       }
     }
 
+    /* Week 6: Upgrade Bay — render track rows, handle scrap purchases */
+    function renderUpgradesPanel() {
+      const panel = document.getElementById('upgradesPanel');
+      panel.innerHTML = '';
+
+      Object.keys(UPGRADE_DEFS).forEach(id => {
+        const def = UPGRADE_DEFS[id];
+        const lvl = getUpgradeLevel(id);
+        const maxed = lvl >= def.maxLevel;
+        const cost = maxed ? 0 : upgradeCost(def, lvl);
+        const canAfford = !maxed && metaState.scrap >= cost;
+
+        const row = document.createElement('div');
+        row.className = 'upgrade-row' + (maxed ? ' upgrade-maxed' : '');
+
+        const info = document.createElement('div');
+        info.className = 'upgrade-info';
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'upgrade-name';
+        nameEl.style.color = def.color;
+        nameEl.textContent = def.name;
+
+        const effectEl = document.createElement('div');
+        effectEl.className = 'upgrade-effect';
+        effectEl.textContent = def.effect;
+
+        const pips = document.createElement('div');
+        pips.className = 'upgrade-pips';
+        for (let p = 0; p < def.maxLevel; p++) {
+          const pip = document.createElement('div');
+          pip.className = 'upgrade-pip' + (p < lvl ? ' filled' : '');
+          if (p < lvl) {
+            pip.style.background = def.color;
+            pip.style.color = def.color;
+          }
+          pips.appendChild(pip);
+        }
+
+        const descEl = document.createElement('div');
+        descEl.className = 'upgrade-desc';
+        descEl.textContent = def.desc;
+
+        info.appendChild(nameEl);
+        info.appendChild(effectEl);
+        info.appendChild(pips);
+        info.appendChild(descEl);
+
+        const buyBtn = document.createElement('button');
+        buyBtn.className = 'upgrade-buy-btn' + (maxed ? ' btn-maxed' : '');
+        if (maxed) {
+          buyBtn.textContent = 'MAX';
+          buyBtn.disabled = true;
+        } else {
+          buyBtn.textContent = '⚙ ' + cost;
+          buyBtn.disabled = !canAfford;
+          buyBtn.onclick = () => buyUpgrade(id);
+        }
+
+        row.appendChild(info);
+        row.appendChild(buyBtn);
+        panel.appendChild(row);
+      });
+
+      const backBtn = document.createElement('button');
+      backBtn.className = 'hangar-btn btn-back';
+      backBtn.textContent = 'BACK ◀';
+      backBtn.onclick = closeHangarToStart;
+      panel.appendChild(backBtn);
+    }
+
+    function buyUpgrade(id) {
+      const def = UPGRADE_DEFS[id];
+      if (!def) return;
+      const lvl = getUpgradeLevel(id);
+      if (lvl >= def.maxLevel) return;
+      const cost = upgradeCost(def, lvl);
+      if (metaState.scrap < cost) {
+        sfx.deny();
+        return;
+      }
+      metaState.scrap -= cost;
+      metaState.upgrades[id] = lvl + 1;
+      saveMetaState();
+      sfx.buy();
+      renderHangarUI();
+    }
+
+    /* Week 6: fold purchased upgrade tracks into the live player state */
+    function applyUpgradeEffects(target) {
+      target.fireRate = Math.round(target.fireRate * Math.pow(0.95, getUpgradeLevel('fireRate')));
+      target.maxHp = target.maxHp + getUpgradeLevel('maxHp');
+      target.magnetRadius = 70 + 18 * getUpgradeLevel('magnet');
+      target.scrapDropMult = (target.scrapDropMult || 1.0) * (1 + 0.08 * getUpgradeLevel('scrapBonus'));
+      target.startShieldFrames = Math.round(60 * 3 * getUpgradeLevel('shieldStart'));
+    }
+
     function equipHangarShip(shipId) {
       if (!metaState.unlockedShips.includes(shipId)) return;
       metaState.selectedShip = shipId;
@@ -1774,10 +2122,13 @@
       player.homingCooldownRate = chosenShip.homingCooldownRate;
       player.shieldDurationMult = chosenShip.shieldDurationMult;
       player.scrapDropMult = chosenShip.scrapDropMult;
+      applyUpgradeEffects(player);
+      player.hp = player.maxHp;
+      lives = player.maxHp;
       player.vulcanLevel = chosenShip.vulcanLevel;
       player.weaponMode = chosenShip.weaponMode;
       player.weaponTimer = chosenShip.weaponMode !== 'vulcan' ? (60 * 20) : 0;
-      player.shield = chosenShip.initialShield || 0;
+      player.shield = (chosenShip.initialShield || 0) + (player.startShieldFrames || 0);
       player.overdrive = 0;
       player.muzzle = 0;
 
@@ -3402,9 +3753,10 @@
           ctx.fill();
           ctx.restore();
 
-          // Player magnet / pickup check
+          // Player magnet / pickup check (Week 6: radius scales with SALVAGE MAGNET upgrade)
+          const magnetRadius = player.magnetRadius || 70;
           const distToPlayer = Math.hypot(player.x - sc.x, player.y - sc.y);
-          if (distToPlayer < 70) {
+          if (distToPlayer < magnetRadius) {
             // Magnetic attraction
             sc.x += (player.x - sc.x) * 0.18;
             sc.y += (player.y - sc.y) * 0.18;
