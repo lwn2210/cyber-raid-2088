@@ -276,6 +276,47 @@
     .rival-board-title { color: var(--neon-cyan); margin-bottom: 6px; }
     .rival-board-row { display: flex; justify-content: space-between; margin-top: 4px; }
 
+    /* Week 8: Pilot Account panel */
+    .account-panel {
+      margin-top: 14px;
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: rgba(5, 10, 18, 0.75);
+      max-width: 320px;
+      margin-left: auto; margin-right: auto;
+      font-family: 'Press Start 2P', monospace;
+    }
+    .account-title { font-size: 8px; color: var(--neon-yellow); margin-bottom: 8px; }
+    .account-input {
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid #475569;
+      border-radius: 4px;
+      color: #fff;
+      font-family: monospace;
+      font-size: 13px;
+      padding: 6px 8px;
+      margin-top: 5px;
+      outline: none;
+    }
+    .account-input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 8px rgba(0,240,255,0.4); }
+    .account-btn {
+      background: rgba(15,23,42,0.9);
+      border: 1px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .account-btn:active { background: var(--neon-cyan); color: #000; }
+    .account-msg { font-size: 7px; margin-top: 6px; min-height: 10px; color: #94a3b8; }
+    .account-msg.ok { color: #00ff88; }
+    .account-msg.err { color: #ff4466; }
+
     .hangar-container {
       width: 100%;
       max-width: 530px;
@@ -720,6 +761,29 @@
         <button class="press-start-btn" style="margin-top: 0; background: var(--neon-cyan); color: #000; box-shadow: 0 0 20px rgba(0, 240, 255, 0.7), 4px 4px 0 #000;" onclick="openHangar()">HANGAR ⚙</button>
       </div>
 
+      <!-- Week 8: Pilot Account (register / login / cloud progress) -->
+      <div class="account-panel" id="accountPanel">
+        <div id="accountLoggedOut">
+          <div class="account-title">◆ PILOT LOGIN ◆</div>
+          <input class="account-input" id="accUser" maxlength="20" placeholder="PILOT NAME" autocomplete="off">
+          <input class="account-input" id="accPass" type="password" maxlength="100" placeholder="PASSWORD (MIN 6)">
+          <div style="display: flex; gap: 8px; justify-content: center; margin-top: 6px;">
+            <button class="account-btn" onclick="accountLogin()">LOGIN</button>
+            <button class="account-btn" onclick="accountRegister()">REGISTER</button>
+          </div>
+          <div class="account-msg" id="accountMsg"></div>
+        </div>
+        <div id="accountLoggedIn" style="display: none;">
+          <div class="account-title">◆ PILOT: <span id="accName" style="color: var(--neon-cyan);"></span> ◆</div>
+          <div style="display: flex; gap: 8px; justify-content: center; margin-top: 6px;">
+            <button class="account-btn" onclick="accountPull()">⇩ LOAD CLOUD</button>
+            <button class="account-btn" onclick="accountPush()">⇧ SAVE CLOUD</button>
+            <button class="account-btn" onclick="accountLogout()">LOGOUT</button>
+          </div>
+          <div class="account-msg" id="accountMsg2"></div>
+        </div>
+      </div>
+
       <div class="arcade-controls-guide">
         KEYS: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or Arrows (360° Flight) · <kbd>SPACE</kbd> Fire · <kbd>H</kbd> Hangar<br>
         MOBILE: Joystick kiri untuk gerak analog, tombol merah / tap layar untuk menembak.
@@ -1097,6 +1161,23 @@
         filter.connect(gain);
         gain.connect(ac.destination);
         src.start(t);
+      },
+      levelup() {
+        // Week 7: rival duel victory fanfare (ascending arcade arpeggio)
+        const ac = getAudioCtx();
+        const t = ac.currentTime;
+        [523, 659, 784, 1047].forEach((f, idx) => {
+          const osc = ac.createOscillator();
+          const gain = ac.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(f, t + idx * 0.07);
+          gain.gain.setValueAtTime(0.16, t + idx * 0.07);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.07 + 0.14);
+          osc.connect(gain);
+          gain.connect(ac.destination);
+          osc.start(t + idx * 0.07);
+          osc.stop(t + idx * 0.07 + 0.14);
+        });
       }
     };
 
@@ -1468,6 +1549,7 @@
               metaState.rivalStats = {
                 wins: parsed.rivalStats.wins | 0,
                 losses: parsed.rivalStats.losses | 0,
+                bestScore: (typeof parsed.rivalStats.bestScore === 'number' && parsed.rivalStats.bestScore >= 0) ? Math.floor(parsed.rivalStats.bestScore) : 0,
                 beaten: (parsed.rivalStats.beaten && typeof parsed.rivalStats.beaten === 'object') ? parsed.rivalStats.beaten : {}
               };
             }
@@ -1477,7 +1559,7 @@
       } catch (err) {
         console.warn('Corrupt meta-progression data detected. Resetting to defaults.', err);
       }
-      metaState = { scrap: 0, unlockedShips: ['viper'], selectedShip: 'viper', upgrades: {}, rivalStats: { wins: 0, losses: 0, beaten: {} } };
+      metaState = { scrap: 0, unlockedShips: ['viper'], selectedShip: 'viper', upgrades: {}, rivalStats: { wins: 0, losses: 0, bestScore: 0, beaten: {} } };
       saveMetaState();
     }
 
@@ -1634,7 +1716,8 @@
     let rivalCooldown = 720; // ~12s into a run before the first challenger
 
     function metaRival() {
-      if (!metaState.rivalStats) metaState.rivalStats = { wins: 0, losses: 0, beaten: {} };
+      if (!metaState.rivalStats) metaState.rivalStats = { wins: 0, losses: 0, bestScore: 0, beaten: {} };
+      if (typeof metaState.rivalStats.bestScore !== 'number') metaState.rivalStats.bestScore = 0;
       return metaState.rivalStats;
     }
 
@@ -1729,6 +1812,89 @@
       rival = null;
     }
 
+    // Week 8 Pilot Account: register/login + cloud progress sync
+    const ACC_TOKEN_KEY = 'cyberraid_token_v1';
+    const setAccMsg = (id, text, cls) => { const el = document.getElementById(id); if (el) { el.textContent = text; el.className = 'account-msg' + (cls ? ' ' + cls : ''); } };
+
+    function accountLoggedIn(token, username) {
+      localStorage.setItem(ACC_TOKEN_KEY, token);
+      document.getElementById('accountLoggedOut').style.display = 'none';
+      document.getElementById('accountLoggedIn').style.display = 'block';
+      document.getElementById('accName').textContent = username;
+    }
+
+    function accountLoggedOut() {
+      localStorage.removeItem(ACC_TOKEN_KEY);
+      document.getElementById('accountLoggedOut').style.display = 'block';
+      document.getElementById('accountLoggedIn').style.display = 'none';
+    }
+
+    async function accountAuth(mode) {
+      const username = document.getElementById('accUser').value.trim();
+      const password = document.getElementById('accPass').value;
+      setAccMsg('accountMsg', mode === 'register' ? 'REGISTERING...' : 'LOGGING IN...');
+      try {
+        const r = await fetch('/api/' + mode, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username, password }) });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'failed');
+        accountLoggedIn(d.token, d.username);
+        setAccMsg('accountMsg2', 'WELCOME, ' + d.username.toUpperCase() + '!', 'ok');
+        sfx.success();
+      } catch (e) {
+        setAccMsg('accountMsg', (e.message || 'FAILED').toUpperCase(), 'err');
+        sfx.error();
+      }
+    }
+    const accountRegister = () => accountAuth('register');
+    const accountLogin = () => accountAuth('login');
+
+    function accountLogout() {
+      accountLoggedOut();
+      setAccMsg('accountMsg', 'LOGGED OUT');
+    }
+
+    async function accountPush() {
+      const token = localStorage.getItem(ACC_TOKEN_KEY);
+      if (!token) return setAccMsg('accountMsg2', 'NOT LOGGED IN', 'err');
+      setAccMsg('accountMsg2', 'SAVING...');
+      try {
+        const r = await fetch('/api/meta', { method: 'PUT', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + token }, body: JSON.stringify({ meta: metaState }) });
+        if (!r.ok) throw new Error('save failed');
+        setAccMsg('accountMsg2', 'PROGRESS SAVED TO CLOUD ✓', 'ok');
+        sfx.success();
+      } catch (e) { setAccMsg('accountMsg2', 'SAVE FAILED', 'err'); sfx.error(); }
+    }
+
+    async function accountPull() {
+      const token = localStorage.getItem(ACC_TOKEN_KEY);
+      if (!token) return setAccMsg('accountMsg2', 'NOT LOGGED IN', 'err');
+      setAccMsg('accountMsg2', 'LOADING...');
+      try {
+        const r = await fetch('/api/me', { headers: { 'authorization': 'Bearer ' + token } });
+        const d = await r.json();
+        if (!r.ok) throw new Error('load failed');
+        if (d.meta && typeof d.meta === 'object' && Object.keys(d.meta).length) {
+          metaState = Object.assign({ scrap: 0, unlockedShips: ['viper'], selectedShip: 'viper', upgrades: {}, rivalStats: { wins: 0, losses: 0, beaten: {} } }, d.meta);
+          saveMetaState();
+          renderHangarUI();
+          setAccMsg('accountMsg2', 'CLOUD PROGRESS LOADED ✓', 'ok');
+        } else {
+          setAccMsg('accountMsg2', 'NO CLOUD SAVE YET — PUSH FIRST', 'err');
+        }
+      } catch (e) { setAccMsg('accountMsg2', 'LOAD FAILED', 'err'); sfx.error(); }
+    }
+
+    // Auto-restore session on boot
+    (async () => {
+      const token = localStorage.getItem(ACC_TOKEN_KEY);
+      if (!token) return;
+      try {
+        const r = await fetch('/api/me', { headers: { 'authorization': 'Bearer ' + token } });
+        if (r.ok) { const d = await r.json(); accountLoggedIn(token, d.username); }
+        else accountLoggedOut();
+      } catch { /* offline: keep panel as-is */ }
+    })();
+
     function renderRivalBoard() {
       const el = document.getElementById('rivalBoard');
       if (!el) return;
@@ -1737,6 +1903,7 @@
       let html = '<div class="rival-board-title">◆ RIVAL BOARD</div>';
       html += '<div class="rival-board-row"><span>DUELS WON</span><span>' + st.wins + '</span></div>';
       html += '<div class="rival-board-row"><span>DUELS LOST</span><span>' + st.losses + '</span></div>';
+      html += '<div class="rival-board-row"><span>BEST SCORE</span><span>' + (st.bestScore > 0 ? st.bestScore.toLocaleString() : '—') + '</span></div>';
       html += '<div class="rival-board-row"><span>NEMESES</span><span>' + (beaten.length ? beaten.map(n => n + ' ×' + st.beaten[n]).join(' · ') : '—') + '</span></div>';
       el.innerHTML = html;
     }
@@ -2366,6 +2533,8 @@
       currentSectorIndex = 0;
       sectorBanner = { text: 'SECTOR 1: ASTEROID BELT', sub: 'PILOT: ' + chosenShip.name + ' [' + chosenShip.palette.name + ']', timer: 180 };
       boss = null;
+      rival = null;
+      rivalCooldown = 720; // Week 7: fresh duel schedule each run
       initAsteroids();
       initNeonCity();
       bgm.start('asteroid');
@@ -2684,6 +2853,11 @@
         // Week 5: Persist collected scrap
         loadMetaState();
         metaState.scrap += sessionRunScrap;
+        saveMetaState();
+
+        // Week 7: persist best score into rival board stats
+        const rst = metaRival();
+        if (score > rst.bestScore) rst.bestScore = score;
         saveMetaState();
 
         document.getElementById('finalScore').textContent = score;
@@ -3497,6 +3671,20 @@
           ctx.shadowBlur = 8;
           ctx.fillRect(l.x - l.w / 2, l.y, l.w, l.h);
           ctx.shadowBlur = 0;
+
+          // Week 7: rival duels — player lasers can also hit the rival
+          if (rival && !rival.fleeing &&
+              Math.abs(l.x - rival.x) < 26 && Math.abs(l.y - rival.y) < 26) {
+            lasers.splice(i, 1);
+            rival.hp--;
+            rival.flash = 6;
+            hitFlash = 0.12;
+            addSparks(l.x, l.y, rival.color, 5, 3);
+            sfx.hit();
+            if (rival.hp <= 0) defeatRival();
+            continue;
+          }
+
           if (l.y < -20 || l.x < -20 || l.x > W + 20) lasers.splice(i, 1);
         }
 
@@ -4138,8 +4326,8 @@
             if (rival.flash > 0) ctx.filter = 'brightness(4) saturate(0.4)';
             const rsc = Math.max(52 / rimg.naturalWidth, 52 / rimg.naturalHeight);
             ctx.drawImage(rimg, -rimg.naturalWidth * rsc / 2, -rimg.naturalHeight * rsc / 2, rimg.naturalWidth * rsc, rimg.naturalHeight * rsc);
-            ctx.filter = 'none';
           } else {
+            ctx.filter = 'none';
             ctx.fillStyle = rival.flash > 0 ? '#ffffff' : rival.color;
             ctx.fillRect(-20, -20, 40, 40);
           }
