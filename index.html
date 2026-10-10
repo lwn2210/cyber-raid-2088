@@ -261,6 +261,21 @@
     /* Week 5: Hangar & Pilot Meta-Progression */
     .hud-scrap { color: var(--neon-yellow); }
 
+    /* Week 7: Rival Board */
+    .rival-board {
+      width: 100%;
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: rgba(5, 10, 18, 0.7);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: #94a3b8;
+      box-sizing: border-box;
+    }
+    .rival-board-title { color: var(--neon-cyan); margin-bottom: 6px; }
+    .rival-board-row { display: flex; justify-content: space-between; margin-top: 4px; }
+
     .hangar-container {
       width: 100%;
       max-width: 530px;
@@ -766,6 +781,10 @@
 
         <div class="hangar-kbd-nav-tip" id="hangarNavTip">
           [◀/▶] SELECT SHIP · [ENTER] ACTION / LAUNCH · [ESC] TITLE
+        </div>
+
+        <div class="rival-board" id="rivalBoard">
+          <!-- Week 7: Rival Board rendered dynamically -->
         </div>
       </div>
     </div>
@@ -1444,13 +1463,21 @@
                 }
               });
             }
+            // Week 7: rival duel stats
+            if (parsed.rivalStats && typeof parsed.rivalStats === 'object') {
+              metaState.rivalStats = {
+                wins: parsed.rivalStats.wins | 0,
+                losses: parsed.rivalStats.losses | 0,
+                beaten: (parsed.rivalStats.beaten && typeof parsed.rivalStats.beaten === 'object') ? parsed.rivalStats.beaten : {}
+              };
+            }
             return;
           }
         }
       } catch (err) {
         console.warn('Corrupt meta-progression data detected. Resetting to defaults.', err);
       }
-      metaState = { scrap: 0, unlockedShips: ['viper'], selectedShip: 'viper', upgrades: {} };
+      metaState = { scrap: 0, unlockedShips: ['viper'], selectedShip: 'viper', upgrades: {}, rivalStats: { wins: 0, losses: 0, beaten: {} } };
       saveMetaState();
     }
 
@@ -1592,6 +1619,127 @@
 
     // Sector 3: Hostile Fleet Core Boss Mothership
     let boss = null;
+
+    /* ==========================================================================
+       WEEK 7: RIVAL PILOT AI — challenger duels ("lawan orang" feel)
+       ========================================================================== */
+    const RIVAL_POOL = [
+      { name: 'KAZ_XR', rank: 'BRONZE', sprite: 'rivalA', color: '#ff8800', hp: 12, fireRate: 34, burst: 2 },
+      { name: 'NEONJACK', rank: 'SILVER', sprite: 'rivalB', color: '#00ff88', hp: 16, fireRate: 28, burst: 3 },
+      { name: 'VOIDQUEEN', rank: 'GOLD', sprite: 'rivalA', color: '#ff44dd', hp: 20, fireRate: 22, burst: 3 },
+      { name: 'GHOST-9', rank: 'PLATINUM', sprite: 'rivalB', color: '#88ddff', hp: 24, fireRate: 18, burst: 4 },
+      { name: 'OMEGAWOLF', rank: 'DIAMOND', sprite: 'rivalA', color: '#ffe600', hp: 30, fireRate: 15, burst: 4 }
+    ];
+    let rival = null;
+    let rivalCooldown = 720; // ~12s into a run before the first challenger
+
+    function metaRival() {
+      if (!metaState.rivalStats) metaState.rivalStats = { wins: 0, losses: 0, beaten: {} };
+      return metaState.rivalStats;
+    }
+
+    function spawnRival() {
+      const pool = RIVAL_POOL.slice(0, 2 + currentSectorIndex); // harder roster in later sectors
+      const def = pool[Math.floor(Math.random() * pool.length)];
+      const hp = def.hp + currentSectorIndex * 6;
+      rival = {
+        name: def.name, rank: def.rank, color: def.color, sprite: def.sprite,
+        hp, maxHp: hp,
+        fireRate: Math.max(12, def.fireRate - currentSectorIndex * 3), burst: def.burst,
+        x: W + 70, y: 130, vx: -3.4, dirTimer: 0, dir: 1,
+        fireCd: 90, burstLeft: 0, life: 1800, // 30s duel window
+        flash: 0, fleeing: false
+      };
+      sectorBanner = { text: 'CHALLENGER: ' + def.name, sub: def.rank + ' RIVAL PILOT ENGAGED!', timer: 150 };
+      sfx.alarm();
+      screenShake = 10;
+    }
+
+    function updateRival(now) {
+      if (rivalCooldown > 0) rivalCooldown--;
+      if (!rival && rivalCooldown === 0 && !boss) {
+        spawnRival();
+        rivalCooldown = 2400 + Math.floor(Math.random() * 1200);
+      }
+      if (!rival) return;
+      const r = rival;
+      if (r.flash > 0) r.flash--;
+      // entry glide from off-screen
+      if (r.x > W - 130) { r.x += r.vx; return; }
+      // strafe near the player like a real pilot, with occasional stalls
+      r.dirTimer--;
+      if (r.dirTimer <= 0) { r.dir = Math.random() > 0.5 ? 1 : -1; r.dirTimer = 40 + Math.random() * 60; }
+      const targetX = player.x + r.dir * 150;
+      r.vx += Math.sign(targetX - r.x) * 0.22;
+      r.vx = Math.max(-4.2, Math.min(4.2, r.vx));
+      if (Math.random() > 0.985) r.vx *= 0.2; // human-like hesitation
+      r.x += r.vx;
+      r.x = Math.max(40, Math.min(W - 40, r.x));
+      r.y = 130 + Math.sin(now / 600) * 26;
+      // duel timeout: record the loss, then bail out
+      r.life--;
+      if (r.life === 300) sectorBanner = { text: r.name + ' IS BAILING OUT', sub: 'FINISH THE DUEL!', timer: 90 };
+      if (r.life <= 0) {
+        if (!r.fleeing) {
+          r.fleeing = true;
+          metaRival().losses++;
+          saveMetaState();
+          rivalCooldown = 2400 + Math.floor(Math.random() * 1200);
+          addFloatingText(r.x, r.y, r.name + ' ESCAPED', '#94a3b8');
+        }
+        r.y -= 6;
+        if (r.y < -60) rival = null;
+        return;
+      }
+      // burst fire toward the player with inaccuracy
+      r.fireCd--;
+      if (r.burstLeft > 0 && r.fireCd <= 0) {
+        const a = Math.atan2(player.y - r.y, player.x - r.x) + (Math.random() - 0.5) * 0.16;
+        enemyLasers.push({ x: r.x, y: r.y, vx: Math.cos(a) * 5.4, vy: Math.sin(a) * 5.4 });
+        sfx.enemyLaser();
+        r.burstLeft--;
+        r.fireCd = 7;
+      } else if (r.fireCd <= 0) {
+        r.burstLeft = r.burst;
+        r.fireCd = r.fireRate + Math.random() * 20;
+      }
+    }
+
+    function defeatRival() {
+      const r = rival;
+      const pts = 1500 * combo;
+      score += pts;
+      spawnScrap(r.x, r.y, 220);
+      gems.push({ x: r.x, y: r.y, vy: 2.4 });
+      addFloatingText(r.x, r.y, 'DEFEATED ' + r.name, '#ffe600');
+      addFloatingText(r.x, r.y - 22, `+${pts}`, '#00f0ff');
+      addShockwave(r.x, r.y, r.color, 120, 6);
+      addSparks(r.x, r.y, r.color, 34, 6);
+      addSparks(r.x, r.y, '#ffffff', 10, 4);
+      sfx.explosion(true);
+      sfx.levelup();
+      hitStop = 5;
+      screenShake = 12;
+      screenFlash = 0.3;
+      const st = metaRival();
+      st.wins++;
+      st.beaten[r.name] = (st.beaten[r.name] || 0) + 1;
+      saveMetaState();
+      rivalCooldown = 2400 + Math.floor(Math.random() * 1200);
+      rival = null;
+    }
+
+    function renderRivalBoard() {
+      const el = document.getElementById('rivalBoard');
+      if (!el) return;
+      const st = metaRival();
+      const beaten = Object.keys(st.beaten).sort((a, b) => st.beaten[b] - st.beaten[a]).slice(0, 3);
+      let html = '<div class="rival-board-title">◆ RIVAL BOARD</div>';
+      html += '<div class="rival-board-row"><span>DUELS WON</span><span>' + st.wins + '</span></div>';
+      html += '<div class="rival-board-row"><span>DUELS LOST</span><span>' + st.losses + '</span></div>';
+      html += '<div class="rival-board-row"><span>NEMESES</span><span>' + (beaten.length ? beaten.map(n => n + ' ×' + st.beaten[n]).join(' · ') : '—') + '</span></div>';
+      el.innerHTML = html;
+    }
     function spawnBossMothership() {
       boss = {
         active: true,
@@ -1864,6 +2012,7 @@
     }
 
     function renderHangarUI() {
+      renderRivalBoard();
       document.getElementById('hangarScrapCount').textContent = metaState.scrap;
 
       const isUpgradesTab = hangarTab === 'upgrades';
@@ -2941,7 +3090,7 @@
 
     // Kenney CC0 sprite assets (preloaded)
     const SPRITES = {};
-    ['cruiser:enemyRed3.png', 'interceptor:enemyBlack4.png', 'ufo:ufoBlue.png', 'astBig:meteorBrown_big1.png', 'astSmall:meteorBrown_small1.png'].forEach(def => {
+    ['cruiser:enemyRed3.png', 'interceptor:enemyBlack4.png', 'ufo:ufoBlue.png', 'astBig:meteorBrown_big1.png', 'astSmall:meteorBrown_small1.png', 'rivalA:playerShip2_green.png', 'rivalB:playerShip3_red.png'].forEach(def => {
       const parts = def.split(':');
       const img = new Image();
       img.src = 'assets/' + parts[1];
@@ -3292,6 +3441,7 @@
         if (player.muzzle > 0) player.muzzle--;
         engineTick++;
         if (engineTick % 55 === 0) sfx.thruster();
+        updateRival(now);
         const effectiveFireRate = player.overdrive > 0 ? 70 : player.fireRate;
         const isFiring = keys['Space'] || btnShootDown || touchFiring;
         if (isFiring && now - player.lastShot > effectiveFireRate) {
@@ -3442,6 +3592,18 @@
               if (e.hp <= 0) killEnemy(k, e, now);
               hitSomething = true;
               break;
+            }
+          }
+          // Week 7: player lasers can hit the rival challenger
+          if (!hitSomething && rival && !rival.fleeing) {
+            if (Math.abs(m.x - rival.x) < 34 && Math.abs(m.y - rival.y) < 34) {
+              rival.hp--;
+              rival.flash = 6;
+              hitFlash = 0.15;
+              addSparks(m.x, m.y, rival.color, 8, 4);
+              sfx.hit();
+              if (rival.hp <= 0) defeatRival();
+              hitSomething = true;
             }
           }
           if (hitSomething || m.life <= 0 || m.y < -30 || m.x < -30 || m.x > W + 30) {
@@ -3965,6 +4127,36 @@
         if (player.invulnerable > 0) {
           player.invulnerable--;
           if (Math.floor(player.invulnerable / 4) % 2 === 0) ctx.globalAlpha = 0.3;
+        }
+        // Week 7: rival challenger render + duel HP bar
+        if (rival) {
+          ctx.save();
+          ctx.translate(rival.x, rival.y);
+          const rimg = SPRITES[rival.sprite];
+          if (rimg && rimg.complete && rimg.naturalWidth) {
+            ctx.rotate(Math.PI);
+            if (rival.flash > 0) ctx.filter = 'brightness(4) saturate(0.4)';
+            const rsc = Math.max(52 / rimg.naturalWidth, 52 / rimg.naturalHeight);
+            ctx.drawImage(rimg, -rimg.naturalWidth * rsc / 2, -rimg.naturalHeight * rsc / 2, rimg.naturalWidth * rsc, rimg.naturalHeight * rsc);
+            ctx.filter = 'none';
+          } else {
+            ctx.fillStyle = rival.flash > 0 ? '#ffffff' : rival.color;
+            ctx.fillRect(-20, -20, 40, 40);
+          }
+          ctx.restore();
+          ctx.save();
+          const bw = 220;
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.fillRect(W / 2 - bw / 2, 16, bw, 28);
+          ctx.fillStyle = rival.color;
+          ctx.font = '9px "Press Start 2P", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(rival.name + ' [' + rival.rank + ']', W / 2, 29);
+          ctx.fillStyle = '#330011';
+          ctx.fillRect(W / 2 - bw / 2 + 6, 35, bw - 12, 5);
+          ctx.fillStyle = rival.color;
+          ctx.fillRect(W / 2 - bw / 2 + 6, 35, (bw - 12) * Math.max(0, rival.hp / rival.maxHp), 5);
+          ctx.restore();
         }
         renderPlayerPlane(player.x, player.y, player.tilt);
         // muzzle flash
