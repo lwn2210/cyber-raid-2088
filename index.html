@@ -2913,6 +2913,28 @@
       ctx.restore();
     }
 
+    // Kenney CC0 sprite assets (preloaded)
+    const SPRITES = {};
+    ['cruiser:enemyRed3.png', 'interceptor:enemyBlack4.png', 'ufo:ufoBlue.png', 'astBig:meteorBrown_big1.png', 'astSmall:meteorBrown_small1.png'].forEach(def => {
+      const parts = def.split(':');
+      const img = new Image();
+      img.src = 'assets/' + parts[1];
+      SPRITES[parts[0]] = img;
+    });
+
+    // Draw a preloaded sprite centered on current transform; returns false if not ready (vector fallback)
+    function drawEnemySprite(e, key, flashed, rotate180) {
+      const img = SPRITES[key];
+      if (!img || !img.complete || !img.naturalWidth) return false;
+      ctx.shadowBlur = 0;
+      if (rotate180) ctx.rotate(Math.PI);
+      if (flashed) ctx.filter = 'brightness(4) saturate(0.4)';
+      ctx.drawImage(img, -e.w / 2, -e.h / 2, e.w, e.h);
+      ctx.filter = 'none';
+      if (rotate180) ctx.rotate(-Math.PI);
+      return true;
+    }
+
     function renderEnemy(e) {
       ctx.save();
       ctx.translate(e.x, e.y);
@@ -2922,6 +2944,7 @@
       ctx.shadowBlur = 12;
 
       if (e.type === 'cruiser') {
+        if (drawEnemySprite(e, 'cruiser', flashed, true)) { ctx.restore(); return; }
         // Heavy Cruiser — layered warship
         const flick = performance.now() / 60;
         // Engine exhaust (top, flickering)
@@ -2967,6 +2990,7 @@
         ctx.arc(0, -2, pulse * 0.5, 0, Math.PI * 2);
         ctx.fill();
       } else if (e.type === 'interceptor') {
+        if (drawEnemySprite(e, 'interceptor', flashed, true)) { ctx.restore(); return; }
         // Swept Arrow interceptor
         const flick = performance.now() / 50;
         // Engine exhaust
@@ -3003,6 +3027,7 @@
         const isBig = e.type === 'asteroid_big';
         const r = isBig ? 20 : 12;
         ctx.rotate(e.rot || 0);
+        if (drawEnemySprite(e, isBig ? 'astBig' : 'astSmall', flashed, false)) { ctx.restore(); return; }
         ctx.fillStyle = flashed ? '#ffffff' : (isBig ? '#334155' : '#475569');
         ctx.strokeStyle = flashed ? '#ffffff' : '#64748b';
         ctx.lineWidth = 1.5;
@@ -3026,6 +3051,7 @@
         ctx.arc(r * 0.25, -r * 0.2, r * 0.28, 0, Math.PI * 2);
         ctx.fill();
       } else {
+        if (drawEnemySprite(e, 'ufo', flashed, false)) { ctx.restore(); return; }
         // Swarmer / Scout Diamond drone
         const flick = performance.now() / 40 + e.phase;
         // Engine exhaust
