@@ -1749,6 +1749,12 @@
       if (r.flash > 0) r.flash--;
       // entry glide from off-screen
       if (r.x > W - 130) { r.x += r.vx; return; }
+      // Week 7 fix: fleeing rival ascends off-screen — strafe steering must not re-catch it
+      if (r.fleeing) {
+        r.y -= 6;
+        if (r.y < -60) rival = null;
+        return;
+      }
       // strafe near the player like a real pilot, with occasional stalls
       r.dirTimer--;
       if (r.dirTimer <= 0) { r.dir = Math.random() > 0.5 ? 1 : -1; r.dirTimer = 40 + Math.random() * 60; }
