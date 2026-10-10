@@ -1784,8 +1784,18 @@
       const cl = d > JOY_R ? JOY_R / d : 1;
       dx *= cl; dy *= cl;
       joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-      joyVec.x = dx / JOY_R;
-      joyVec.y = dy / JOY_R;
+      // Deadzone + gentle response curve for stable analog feel
+      const nx = dx / JOY_R, ny = dy / JOY_R;
+      const mag = Math.hypot(nx, ny);
+      const DEAD = 0.18;
+      if (mag < DEAD) {
+        joyVec.x = 0; joyVec.y = 0;
+      } else {
+        const norm = Math.min(1, (mag - DEAD) / (1 - DEAD));
+        const curve = norm * norm * 0.55 + norm * 0.45; // slightly eased
+        joyVec.x = (nx / mag) * curve;
+        joyVec.y = (ny / mag) * curve;
+      }
     }
 
     joyBase.addEventListener('touchstart', e => {
@@ -1795,7 +1805,9 @@
       joyActive = true;
       joyUpdate(e);
     }, { passive: false });
-    joyBase.addEventListener('touchmove', e => {
+    // Track the finger window-wide so dragging outside the base keeps steering
+    window.addEventListener('touchmove', e => {
+      if (!joyActive) return;
       e.preventDefault();
       joyUpdate(e);
     }, { passive: false });
@@ -1806,8 +1818,12 @@
       joyVec.y = 0;
       joyKnob.style.transform = 'translate(-50%, -50%)';
     };
-    joyBase.addEventListener('touchend', joyRelease);
-    joyBase.addEventListener('touchcancel', joyRelease);
+    window.addEventListener('touchend', e => {
+      if (joyActive && e.changedTouches[0].identifier === joyId) joyRelease();
+    });
+    window.addEventListener('touchcancel', e => {
+      if (joyActive && e.changedTouches[0].identifier === joyId) joyRelease();
+    });
 
     // Fire Button Binding
     let btnShootDown = false;
@@ -2932,14 +2948,16 @@
       SPRITES[parts[0]] = img;
     });
 
-    // Draw a preloaded sprite centered on current transform; returns false if not ready (vector fallback)
+    // Draw a preloaded sprite centered on current transform, preserving natural aspect ratio; returns false if not ready (vector fallback)
     function drawEnemySprite(e, key, flashed, rotate180) {
       const img = SPRITES[key];
       if (!img || !img.complete || !img.naturalWidth) return false;
       ctx.shadowBlur = 0;
       if (rotate180) ctx.rotate(Math.PI);
       if (flashed) ctx.filter = 'brightness(4) saturate(0.4)';
-      ctx.drawImage(img, -e.w / 2, -e.h / 2, e.w, e.h);
+      const sc = Math.max(e.w / img.naturalWidth, e.h / img.naturalHeight);
+      const dw = img.naturalWidth * sc, dh = img.naturalHeight * sc;
+      ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
       ctx.filter = 'none';
       if (rotate180) ctx.rotate(-Math.PI);
       return true;
