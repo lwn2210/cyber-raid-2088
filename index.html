@@ -1667,9 +1667,46 @@
         y: Math.random() * H,
         speed: 0.6 + Math.random() * 2.8,
         size: Math.random() > 0.85 ? 2.5 : (Math.random() > 0.5 ? 1.5 : 1),
-        color: Math.random() > 0.7 ? '#00f0ff' : (Math.random() > 0.4 ? '#ffffff' : '#94a3b8')
+        color: Math.random() > 0.7 ? '#00f0ff' : (Math.random() > 0.4 ? '#ffffff' : '#94a3b8'),
+        tw: Math.random() * Math.PI * 2
       });
     }
+
+    // Pre-rendered nebula backdrop (drawn once, blitted every frame)
+    const nebulaCanvas = document.createElement('canvas');
+    nebulaCanvas.width = W; nebulaCanvas.height = H;
+    (() => {
+      const nctx = nebulaCanvas.getContext('2d');
+      nctx.fillStyle = '#050508';
+      nctx.fillRect(0, 0, W, H);
+      const blobs = [
+        { x: W * 0.2, y: H * 0.3, r: W * 0.35, c: 'rgba(20, 60, 120, 0.20)' },
+        { x: W * 0.75, y: H * 0.6, r: W * 0.3, c: 'rgba(90, 20, 110, 0.16)' },
+        { x: W * 0.5, y: H * 0.9, r: W * 0.4, c: 'rgba(0, 100, 110, 0.14)' },
+        { x: W * 0.85, y: H * 0.15, r: W * 0.25, c: 'rgba(120, 30, 60, 0.12)' }
+      ];
+      blobs.forEach(b => {
+        const g = nctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+        g.addColorStop(0, b.c);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        nctx.fillStyle = g;
+        nctx.fillRect(0, 0, W, H);
+      });
+    })();
+
+    // Pre-rendered CRT overlay: scanlines + vignette
+    const crtOverlay = document.createElement('canvas');
+    crtOverlay.width = W; crtOverlay.height = H;
+    (() => {
+      const cctx = crtOverlay.getContext('2d');
+      cctx.fillStyle = 'rgba(0,0,0,0.16)';
+      for (let y = 0; y < H; y += 4) cctx.fillRect(0, y, W, 2);
+      const vg = cctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85);
+      vg.addColorStop(0, 'rgba(0,0,0,0)');
+      vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+      cctx.fillStyle = vg;
+      cctx.fillRect(0, 0, W, H);
+    })();
 
     // Input
     const keys = {};
@@ -3059,17 +3096,28 @@
         screenShake = Math.max(0, screenShake - 0.5);
       }
 
-      // 1. CLEAR & BACKGROUND
-      ctx.fillStyle = '#050508';
-      ctx.fillRect(0, 0, W, H);
+      // 1. CLEAR & BACKGROUND (nebula backdrop, pre-rendered)
+      ctx.drawImage(nebulaCanvas, 0, 0);
 
-      // Starfield (Speed conditioned on Sector)
+      // Starfield (Speed conditioned on Sector) + twinkle/glow
       const starSpeedMult = currentSectorIndex === 2 ? 2.2 : (currentSectorIndex === 1 ? 1.4 : 1.0);
       stars.forEach(s => {
         s.y += s.speed * starSpeedMult;
         if (s.y > H) s.y = 0;
-        ctx.fillStyle = currentSectorIndex === 2 ? '#ff0055' : s.color;
+        s.tw += 0.08;
+        if (currentSectorIndex === 2) {
+          ctx.fillStyle = '#ff0055';
+        } else {
+          ctx.globalAlpha = 0.55 + Math.sin(s.tw) * 0.35;
+          ctx.fillStyle = s.color;
+          if (s.size >= 2) {
+            ctx.shadowColor = s.color;
+            ctx.shadowBlur = 6;
+          }
+        }
         ctx.fillRect(s.x, s.y, s.size, s.size);
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1.0;
       });
 
       // SECTOR BACKGROUND RENDERING
@@ -3937,6 +3985,9 @@
         ctx.fillText(sectorBanner.sub, W / 2, H / 2 + 16);
         ctx.restore();
       }
+
+      // CRT overlay: scanlines + vignette (pre-rendered, drawn over everything)
+      ctx.drawImage(crtOverlay, 0, 0);
 
       // 9. Floating Text & Particles
       for (let i = floatTexts.length - 1; i >= 0; i--) {
