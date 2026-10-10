@@ -1729,7 +1729,7 @@
         name: def.name, rank: def.rank, color: def.color, sprite: def.sprite,
         hp, maxHp: hp,
         fireRate: Math.max(12, def.fireRate - currentSectorIndex * 3), burst: def.burst,
-        x: W + 70, y: 130, vx: -3.4, dirTimer: 0, dir: 1,
+        x: W + 70, y: 130, vx: -3.4, dirTimer: 0, dir: 1, entered: false,
         fireCd: 90, burstLeft: 0, life: 1800, // 30s duel window
         flash: 0, fleeing: false
       };
@@ -1747,8 +1747,12 @@
       if (!rival) return;
       const r = rival;
       if (r.flash > 0) r.flash--;
-      // entry glide from off-screen
-      if (r.x > W - 130) { r.x += r.vx; return; }
+      // entry glide from off-screen (one-shot: flag prevents strafe clamp from re-triggering it)
+      if (!r.entered) {
+        r.x += r.vx;
+        if (r.x <= W - 130) { r.entered = true; r.vx = 0; }
+        return;
+      }
       // Week 7 fix: fleeing rival ascends off-screen — strafe steering must not re-catch it
       if (r.fleeing) {
         r.y -= 6;
