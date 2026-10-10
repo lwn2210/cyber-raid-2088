@@ -213,30 +213,29 @@
       z-index: 25;
     }
 
-    .stick-pad {
-      display: grid;
-      grid-template-columns: repeat(3, 44px);
-      grid-template-rows: repeat(3, 44px);
-      gap: 3px;
+    .joy-base {
+      position: relative;
+      width: 118px;
+      height: 118px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,240,255,0.08), rgba(10,14,22,0.7));
+      border: 2px solid rgba(0, 240, 255, 0.45);
       pointer-events: auto;
+      touch-action: none;
+      box-shadow: 0 0 14px rgba(0, 240, 255, 0.25), inset 0 0 18px rgba(0,240,255,0.08);
     }
 
-    .pad-btn {
-      background: rgba(20, 20, 30, 0.75);
-      border: 2px solid #475569;
-      border-radius: 6px;
-      color: #94a3b8;
-      font-size: 1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: sans-serif;
-    }
-
-    .pad-btn:active {
-      background: var(--neon-cyan);
-      color: #000;
-      border-color: #fff;
+    .joy-knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 30%, #67e8f9, #0891b2);
+      border: 2px solid #cffafe;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.6);
     }
 
     .arcade-fire-btn {
@@ -708,7 +707,7 @@
 
       <div class="arcade-controls-guide">
         KEYS: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or Arrows (360° Flight) · <kbd>SPACE</kbd> Fire · <kbd>H</kbd> Hangar<br>
-        MOBILE: Touch & drag anywhere to steer or use virtual stick.
+        MOBILE: Joystick kiri untuk gerak analog, tombol merah / tap layar untuk menembak.
       </div>
     </div>
 
@@ -773,16 +772,8 @@
 
     <!-- Mobile Virtual Controls -->
     <div class="mobile-controls">
-      <div class="stick-pad">
-        <div></div>
-        <div class="pad-btn" id="dpadUp">▲</div>
-        <div></div>
-        <div class="pad-btn" id="dpadLeft">◀</div>
-        <div></div>
-        <div class="pad-btn" id="dpadRight">▶</div>
-        <div></div>
-        <div class="pad-btn" id="dpadDown">▼</div>
-        <div></div>
+      <div class="joy-base" id="joyBase">
+        <div class="joy-knob" id="joyKnob"></div>
       </div>
       <div class="arcade-fire-btn" id="btnShoot">🔴</div>
     </div>
@@ -1771,41 +1762,60 @@
     });
     window.addEventListener('keyup', e => keys[e.code] = false);
 
-    // Mobile Touch / Drag Flight
-    let touchX = null;
-    let touchY = null;
+    // Mobile Touch Fire (tap & hold anywhere on the playfield)
     let touchFiring = false;
+    canvas.addEventListener('touchstart', e => { touchFiring = true; }, { passive: false });
+    canvas.addEventListener('touchend', () => { touchFiring = false; });
 
-    canvas.addEventListener('touchstart', e => {
-      touchFiring = true;
-      const rect = canvas.getBoundingClientRect();
-      touchX = ((e.touches[0].clientX - rect.left) / rect.width) * W;
-      touchY = ((e.touches[0].clientY - rect.top) / rect.height) * H;
+    // Virtual Joystick (replaces arrow/D-pad steering)
+    let joyActive = false, joyId = null;
+    const joyVec = { x: 0, y: 0 };
+    const joyBase = document.getElementById('joyBase');
+    const joyKnob = document.getElementById('joyKnob');
+    const JOY_R = 36;
+
+    function joyUpdate(e) {
+      const t = [...e.touches].find(t => t.identifier === joyId);
+      if (!t) return;
+      const r = joyBase.getBoundingClientRect();
+      let dx = t.clientX - (r.left + r.width / 2);
+      let dy = t.clientY - (r.top + r.height / 2);
+      const d = Math.hypot(dx, dy);
+      const cl = d > JOY_R ? JOY_R / d : 1;
+      dx *= cl; dy *= cl;
+      joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+      joyVec.x = dx / JOY_R;
+      joyVec.y = dy / JOY_R;
+    }
+
+    joyBase.addEventListener('touchstart', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      joyId = e.changedTouches[0].identifier;
+      joyActive = true;
+      joyUpdate(e);
     }, { passive: false });
-
-    canvas.addEventListener('touchmove', e => {
-      const rect = canvas.getBoundingClientRect();
-      touchX = ((e.touches[0].clientX - rect.left) / rect.width) * W;
-      touchY = ((e.touches[0].clientY - rect.top) / rect.height) * H;
+    joyBase.addEventListener('touchmove', e => {
+      e.preventDefault();
+      joyUpdate(e);
     }, { passive: false });
+    const joyRelease = () => {
+      joyActive = false;
+      joyId = null;
+      joyVec.x = 0;
+      joyVec.y = 0;
+      joyKnob.style.transform = 'translate(-50%, -50%)';
+    };
+    joyBase.addEventListener('touchend', joyRelease);
+    joyBase.addEventListener('touchcancel', joyRelease);
 
-    canvas.addEventListener('touchend', () => {
-      touchFiring = false;
-      touchX = null;
-      touchY = null;
-    });
-
-    // D-Pad Bindings
-    let dpadU = false, dpadD = false, dpadL = false, dpadR = false, btnShootDown = false;
+    // Fire Button Binding
+    let btnShootDown = false;
     const bindPad = (id, setter) => {
       const el = document.getElementById(id);
       el.addEventListener('touchstart', e => { e.preventDefault(); setter(true); });
       el.addEventListener('touchend', e => { e.preventDefault(); setter(false); });
     };
-    bindPad('dpadUp', v => dpadU = v);
-    bindPad('dpadDown', v => dpadD = v);
-    bindPad('dpadLeft', v => dpadL = v);
-    bindPad('dpadRight', v => dpadR = v);
     bindPad('btnShoot', v => btnShootDown = v);
 
     
@@ -3231,17 +3241,15 @@
         let targetVx = 0;
         let targetVy = 0;
 
-        if (keys['KeyA'] || keys['ArrowLeft'] || dpadL) targetVx -= player.speed;
-        if (keys['KeyD'] || keys['ArrowRight'] || dpadR) targetVx += player.speed;
-        if (keys['KeyW'] || keys['ArrowUp'] || dpadU) targetVy -= player.speed;
-        if (keys['KeyS'] || keys['ArrowDown'] || dpadD) targetVy += player.speed;
+        if (keys['KeyA'] || keys['ArrowLeft']) targetVx -= player.speed;
+        if (keys['KeyD'] || keys['ArrowRight']) targetVx += player.speed;
+        if (keys['KeyW'] || keys['ArrowUp']) targetVy -= player.speed;
+        if (keys['KeyS'] || keys['ArrowDown']) targetVy += player.speed;
 
-        // Smooth Drag Target on Touch
-        if (touchX !== null && touchY !== null) {
-          const dx = touchX - player.x;
-          const dy = (touchY - 35) - player.y;
-          targetVx = Math.max(-player.speed, Math.min(player.speed, dx * 0.22));
-          targetVy = Math.max(-player.speed, Math.min(player.speed, dy * 0.22));
+        // Virtual Joystick steering (analog, replaces drag-to-steer)
+        if (joyActive) {
+          targetVx = joyVec.x * player.speed;
+          targetVy = joyVec.y * player.speed;
         }
 
         player.vx += (targetVx - player.vx) * 0.25;
