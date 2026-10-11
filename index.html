@@ -737,6 +737,7 @@
     <div class="bezel-top">
       <div class="hud-title">1UP <span id="hudScore" style="color: #fff;">00</span></div>
       <div class="hud-title" style="color: var(--neon-green);">SEC <span id="hudSector" style="color: #fff;">1</span></div>
+      <div class="hud-title" style="color: var(--neon-cyan);">⏱ <span id="hudTime" style="color: #fff;">0:00</span></div>
       <div class="hud-high">HI <span id="hudHigh" style="color: #fff;">25000</span></div>
       <div class="hud-lives">SHIPS <span id="hudLives" style="color: #fff;">3</span></div>
       <div class="hud-scrap">⚙ <span id="hudScrap" style="color: #fff;">0</span></div>
@@ -801,6 +802,7 @@
 
       <div style="background: rgba(15, 23, 42, 0.85); border: 2px dashed #475569; border-radius: 6px; padding: 10px 16px; margin-bottom: 16px; font-size: 0.6rem; line-height: 1.8;">
         ⚙ RUN SALVAGE: <span id="gameOverRunScrap" style="color: var(--neon-yellow);">+0</span> SCRAP<br>
+        ⏱ RUN TIME: <span id="gameOverRunTime" style="color: var(--neon-cyan);">0:00</span><br>
         💼 TOTAL VAULT: <span id="gameOverTotalScrap" style="color: var(--neon-yellow);">0</span> SCRAP
       </div>
 
@@ -1637,8 +1639,18 @@
     const SECTOR_DEFS = [
       { id: 1, name: 'ASTEROID BELT', theme: 'asteroid', scoreReq: 0, desc: 'SURVIVE THE METEOR HAZARDS' },
       { id: 2, name: 'NEON CITY', theme: 'neon-city', scoreReq: 4000, desc: 'SKYSCRAPER COMBAT ZONE' },
-      { id: 3, name: 'FLEET CORE', theme: 'fleet-core', scoreReq: 9000, desc: 'DREADNOUGHT CARRIER ENCOUNTER' }
+      { id: 3, name: 'FLEET CORE', theme: 'fleet-core', scoreReq: 9000, desc: 'DREADNOUGHT CARRIER ENCOUNTER' },
+      { id: 4, name: 'ION STORM', theme: 'ion-storm', scoreReq: 16000, desc: 'ELECTRIC MAELSTROM — VISIBILITY ZERO' },
+      { id: 5, name: 'VOID NEXUS', theme: 'void-nexus', scoreReq: 26000, desc: 'FINAL WARP — MOTHERSHIP REGENT AWAITS' }
     ];
+
+    // Week 8: run timer (time-to-clear)
+    let runStartMs = 0;
+    let runClearedMs = 0;
+    function fmtTime(ms) {
+      const s = Math.max(0, Math.floor(ms / 1000));
+      return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    }
     let currentSectorIndex = 0;
     let sectorBanner = { text: 'SECTOR 1: ASTEROID BELT', sub: 'SURVIVE THE METEOR HAZARDS', timer: 160 };
 
@@ -2498,6 +2510,8 @@
       document.getElementById('gameOverScreen').style.display = 'none';
       score = 0;
       combo = 1;
+      runStartMs = performance.now();
+      runClearedMs = 0;
 
       // Apply Week 5 Pilot Ship configuration
       loadMetaState();
@@ -2555,6 +2569,8 @@
     function updateHUD() {
       document.getElementById('hudScore').textContent = score.toString().padStart(2, '0');
       const secEl = document.getElementById('hudSector');
+      const timeEl = document.getElementById('hudTime');
+      if (timeEl && gameState === 'PLAYING') timeEl.textContent = fmtTime((runClearedMs || performance.now()) - runStartMs);
       if (secEl) secEl.textContent = currentSectorIndex + 1;
       document.getElementById('hudHigh').textContent = Math.max(score, highScore);
       document.getElementById('hudLives').textContent = lives;
@@ -2574,6 +2590,23 @@
         updateHUD();
       } else if (currentSectorIndex === 1 && score >= SECTOR_DEFS[2].scoreReq) {
         currentSectorIndex = 2;
+        sectorBanner = { text: 'SECTOR 3: FLEET CORE', sub: 'DREADNOUGHT CARRIER ENCOUNTER', timer: 180 };
+        sfx.powerup();
+        bgm.start('fleet');
+        screenFlash = 0.3;
+        updateHUD();
+      } else if (currentSectorIndex === 2 && score >= SECTOR_DEFS[3].scoreReq) {
+        currentSectorIndex = 3;
+        sectorBanner = { text: 'SECTOR 4: ION STORM', sub: 'ELECTRIC MAELSTROM — VISIBILITY ZERO', timer: 180 };
+        sfx.powerup();
+        sfx.alarm();
+        screenFlash = 0.4;
+        updateHUD();
+      } else if (currentSectorIndex === 3 && score >= SECTOR_DEFS[4].scoreReq) {
+        currentSectorIndex = 4;
+        sectorBanner = { text: 'SECTOR 5: VOID NEXUS', sub: 'FINAL WARP — MOTHERSHIP REGENT AWAITS', timer: 200 };
+        sfx.powerup();
+        screenFlash = 0.5;
         updateHUD();
         if (!boss) spawnBossMothership();
       }
@@ -2873,6 +2906,8 @@
         document.getElementById('finalScore').textContent = score;
         document.getElementById('gameOverTaunt').textContent = taunts[Math.floor(Math.random() * taunts.length)];
         const runScrapEl = document.getElementById('gameOverRunScrap');
+        const runTimeEl = document.getElementById('gameOverRunTime');
+        if (runTimeEl) runTimeEl.textContent = fmtTime((runClearedMs || performance.now()) - runStartMs);
         if (runScrapEl) runScrapEl.textContent = '+' + sessionRunScrap;
         const totalScrapEl = document.getElementById('gameOverTotalScrap');
         if (totalScrapEl) totalScrapEl.textContent = metaState.scrap;
@@ -3487,12 +3522,14 @@
       ctx.drawImage(nebulaCanvas, 0, 0);
 
       // Starfield (Speed conditioned on Sector) + twinkle/glow
-      const starSpeedMult = currentSectorIndex === 2 ? 2.2 : (currentSectorIndex === 1 ? 1.4 : 1.0);
+      const starSpeedMult = currentSectorIndex >= 4 ? 2.6 : (currentSectorIndex === 3 ? 1.8 : (currentSectorIndex === 2 ? 2.2 : (currentSectorIndex === 1 ? 1.4 : 1.0)));
       stars.forEach(s => {
         s.y += s.speed * starSpeedMult;
         if (s.y > H) s.y = 0;
         s.tw += 0.08;
-        if (currentSectorIndex === 2) {
+        if (currentSectorIndex === 4) {
+          ctx.fillStyle = '#bb44ff';
+        } else if (currentSectorIndex === 2) {
           ctx.fillStyle = '#ff0055';
         } else {
           ctx.globalAlpha = 0.55 + Math.sin(s.tw) * 0.35;
@@ -3585,6 +3622,34 @@
           ctx.lineTo(rx, H);
           ctx.stroke();
         }
+      } else if (currentSectorIndex === 3) {
+        // Sector 4: Ion Storm — diagonal electric rain + random lightning flashes
+        ctx.strokeStyle = 'rgba(0, 255, 200, 0.35)';
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 10; i++) {
+          const rx = ((i * 67 + now * 0.45) % (W + 80)) - 40;
+          const ry = ((i * 211 + now * 1.1) % (H + 60)) - 30;
+          ctx.beginPath();
+          ctx.moveTo(rx, ry);
+          ctx.lineTo(rx - 8, ry + 34);
+          ctx.stroke();
+        }
+        if (Math.random() < 0.02) {
+          ctx.fillStyle = 'rgba(160, 255, 240, 0.10)';
+          ctx.fillRect(0, 0, W, H);
+        }
+      } else if (currentSectorIndex === 4) {
+        // Sector 5: Void Nexus — pulsing dual warp rings
+        const pulse = (now % 2400) / 2400;
+        ctx.strokeStyle = `rgba(190, 80, 255, ${0.35 * (1 - pulse)})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(W / 2, H / 2, 40 + pulse * (W * 0.7), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(255, 0, 85, ${0.3 * pulse})`;
+        ctx.beginPath();
+        ctx.arc(W / 2, H / 2, 40 + (1 - pulse) * (W * 0.7), 0, Math.PI * 2);
+        ctx.stroke();
       }
 
       if (gameState === 'PLAYING') {
@@ -3940,6 +4005,18 @@
               // Massive Boss Mothership Scrap Reward!
               spawnScrap(boss.x, boss.y, 1000);
               addFloatingText(boss.x, boss.y - 30, '+1000 SCRAP SALVAGE!', '#ffe600');
+              // Week 8: time-to-clear on final boss
+              if (currentSectorIndex >= SECTOR_DEFS.length - 1) {
+                runClearedMs = performance.now();
+                const clearT = fmtTime(runClearedMs - runStartMs);
+                addFloatingText(boss.x, boss.y - 60, 'CLEARED IN ' + clearT + '!', '#00ff88');
+                const best = metaState.clearTimeBestMs || 0;
+                if (!best || runClearedMs - runStartMs < best) {
+                  metaState.clearTimeBestMs = Math.floor(runClearedMs - runStartMs);
+                  saveMetaState();
+                  addFloatingText(boss.x, boss.y - 82, 'NEW BEST TIME!', '#00f0ff');
+                }
+              }
               boss.active = false;
               boss = null;
               sectorBanner = {
