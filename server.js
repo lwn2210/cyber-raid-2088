@@ -144,8 +144,13 @@ const server = http.createServer(async (req, res) => {
     // static files
     let p = decodeURIComponent(url.pathname);
     if (p === '/') p = '/index.html';
-    const filePath = path.normalize(path.join(ROOT, p));
+    let filePath = path.normalize(path.join(ROOT, p));
     if (!filePath.startsWith(ROOT)) { res.writeHead(403); return res.end('forbidden'); }
+    try {
+      if (fs.statSync(filePath).isDirectory()) {
+        filePath = path.join(filePath, 'index.html'); // serve dir index (e.g. /arcade/)
+      }
+    } catch { /* not found below */ }
     fs.readFile(filePath, (err, data) => {
       if (err) { res.writeHead(404); return res.end('not found'); }
       const headers = { 'Content-Type': MIME[path.extname(filePath)] || 'application/octet-stream' };
